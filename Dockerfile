@@ -9,4 +9,4 @@ SHELL [ "/bin/bash", "-c" ]
 COPY build_docker.sh /tmp
 COPY motd /tmp
 RUN /bin/bash /tmp/build_docker.sh
-ENTRYPOINT ["python", "webservice/__main__.py"]
+ENTRYPOINT ["python", "/usr/share/github_app/webservice/__main__.py"]
