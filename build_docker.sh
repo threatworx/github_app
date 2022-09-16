@@ -1,8 +1,3 @@
-aiohttp
-gidgethub>=4.1.0
-PyJWT
-cryptography
-cachetools
 #!/bin/bash
 
 # Build script for twigs docker image
