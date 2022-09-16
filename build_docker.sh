@@ -82,6 +82,10 @@ git clone https://github.com/toniblyx/prowler /usr/share/prowler
 rm -rf /usr/share/docker-bench-security
 git clone https://github.com/docker/docker-bench-security.git /usr/share/docker-bench-security
 
+# clone tw github app
+rm -rf /usr/share/github_app
+git clone https://github.com/threatworx/github_app.git /usr/share/github_app
+
 # Setup PROWLER_HOME in bashrc
 if ! grep -q "PROWLER_HOME" $HOME/.bashrc
 then
