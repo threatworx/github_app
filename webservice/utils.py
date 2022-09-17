@@ -4,15 +4,18 @@ import subprocess
 import configparser
 import requests
 import time
+import uuid
 
 config = None
 GoDaddyCABundle = True
+CONFIG_FILE = '/opt/tw_github_app/config/config.ini'
+gh_app_manifest_state = None
 
-def get_config():
+def get_config(force_read = False):
     global config
-    if config is not None:
+    if force_read == False and config is not None:
         return config
-    CONFIG_FILE='/opt/tw_github_app/config/config.ini'
+    global CONFIG_FILE
     env_config_path = os.environ.get("TW_GITHUB_APP_CONFIG")
     if env_config_path is None:
         print("Warning environment variable [TW_GITHUB_APP_CONFIG] is not specified. Falling back to default path for config file [/opt/tw_github_app/config/config.ini]")
@@ -29,6 +32,17 @@ def get_config():
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)
     return config
+
+def write_config(config):
+    with open(CONFIG_FILE, 'w') as fd:
+        config.write(fd)
+
+def get_gh_app_manifest_state():
+    global gh_app_manifest_state
+    if gh_app_manifest_state is not None:
+        return gh_app_manifest_state
+    gh_app_manifest_state = uuid.uuid4().hex
+    return gh_app_manifest_state
 
 def discover_repo(gh_app_access_token, repo_url, branch, asset_id):
 

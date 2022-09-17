@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+    <head><title>Configure your GitHub App</title></head>
+    <body>
+        <h1>Configure your ThreatWorx GitHub App</h1>
+        <form action="" method="post" id="main_form">
+            Specify your GitHub Organization Name: <input type="text" name="gh_org" id="gh_org"><br>
+            <input type="hidden" name="manifest" id="manifest"><br>
+            Click the button below to create GitHub App for your GitHub organization<br>
+            <br>
+            <button type="button" onclick="button_clicked()">Create GitHub App</button>
+        </form>
+
+        <script>
+        function button_clicked() {
+            tokens = window.location.href.split('/')
+            base_url = tokens[0] + "//" + tokens[1] + tokens[2] + "/"
+            webhook_url = base_url + "webhook"
+            redirect_url = base_url + "redirect"
+            main_form = document.getElementById("main_form")
+            gh_org = document.getElementById("gh_org").value
+            if (gh_org.length == 0) {
+                main_form.action = "https://github.com/settings/apps/new?state=TW_STATE"
+            }
+            else {
+                main_form.action = "https://github.com/organizations/" + gh_org + "/settings/apps/new?state=TW_STATE"
+            }
+            input = document.getElementById("manifest")
+            input.value = JSON.stringify({
+                "name": "ThreatWorx GitHub App",
+                "url": "https://threatworx.io/",
+                "hook_attributes": {
+                    "url": webhook_url,
+                },
+                "redirect_url": redirect_url,
+                "callback_urls": [
+                ],
+                "public": true,
+                "default_permissions": {
+		    "contents": "read",
+		    "metadata": "read",
+                    "pull_requests": "write"
+                },
+                "default_events": [
+                    "pull_request"
+                ]
+            })
+            main_form.submit()
+        }
+        </script>
+
+    </body>
+</html>
