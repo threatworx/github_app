@@ -90,15 +90,10 @@ async def webhook(request):
 async def pull_request_opened(event, gh, *args, **kwargs):
     print("In pull_request opened webhook")
     config = utils.get_config()
-    # get the installation access token for our GitHub App
     installation_id = event.data["installation"]["id"]
-    installation_access_token = await apps.get_installation_access_token(
-        gh,
-        installation_id=installation_id,
-        app_id=config['github_app']['app_id'],
-        private_key=config['github_app']['private_key']
-    )
-    gh_app_access_token = installation_access_token['token']
+
+    # get the installation access token for our GitHub App
+    installation_access_token = utils.get_installation_access_token(installation_id)
 
     #print(event.data)
     #print(installation_access_token)
@@ -116,14 +111,17 @@ async def pull_request_opened(event, gh, *args, **kwargs):
     comments_url = event.data['pull_request']['comments_url']
 
     # Discover and scan base asset
-    ret_val = utils.discover_repo(gh_app_access_token, base_repo_url, base_branch, base_asset_id)
+    ret_val = utils.discover_repo(installation_access_token['token'], base_repo_url, base_branch, base_asset_id)
 
     if ret_val == False:
         print("Error while discovering asset for base branch [%s]" % base_branch)
         return
 
+    # get the installation access token for our GitHub App
+    installation_access_token = utils.get_installation_access_token(installation_id)
+
     # Discover and scan head asset
-    ret_val = utils.discover_repo(gh_app_access_token, head_repo_url, head_branch, head_asset_id)
+    ret_val = utils.discover_repo(installation_access_token['token'], head_repo_url, head_branch, head_asset_id)
 
     if ret_val == False:
         print("Error while discovering asset for head branch [%s]" % head_branch)
@@ -134,15 +132,23 @@ async def pull_request_opened(event, gh, *args, **kwargs):
     impact_delta = utils.compute_vuln_impact_delta(base_asset_id, head_asset_id)
     #print(impact_delta)
 
+    # get the installation access token for our GitHub App
+    installation_access_token = utils.get_installation_access_token(installation_id)
+
     # Update PR request with information
     pr_comment = utils.compose_pr_comment(impact_delta)
     #print(comments_url)
     #print(pr_comment)
-    headers = { "Accept": "application/vnd.github+json", "Authorization" : "Bearer "+gh_app_access_token }
+    headers = { "Accept": "application/vnd.github+json", "Authorization" : "Bearer "+installation_access_token['token'] }
     data = { "body" : pr_comment }
     response = utils.requests_post(comments_url, headers, data, True)
-    print("Added comment to pull_request")
     #print(response)
+    if response is not None and response.status_code == 201:
+        print("Added comment to pull_request")
+    else:
+        print("Error adding comment to pull_request")
+        print(response.status_code)
+        print(response.content)
 
     # Delete discovered assets
     utils.delete_asset(base_asset_id)

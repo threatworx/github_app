@@ -6,6 +6,8 @@ import requests
 import time
 import uuid
 
+from gidgethub import apps
+
 config = None
 GoDaddyCABundle = True
 CONFIG_FILE = '/opt/tw_github_app/config/config.ini'
@@ -44,6 +46,23 @@ def get_gh_app_manifest_state():
     gh_app_manifest_state = uuid.uuid4().hex
     return gh_app_manifest_state
 
+def get_installation_access_token(installation_id):
+    print("In get_installation_access_token")
+    config = get_config()
+    app_id=config['github_app']['app_id']
+    private_key=config['github_app']['private_key']
+    jwt_token = apps.get_jwt(app_id=app_id, private_key=private_key)
+    #print(jwt_token)
+    headers = { "Authorization": "Bearer %s" % jwt_token, "Accept": "application/vnd.github+json" }
+    url = "https://api.github.com/app/installations/%s/access_tokens" % str(installation_id)
+    response = requests_post(url, headers, {}, True)
+    #print(response.status_code)
+    #print(response.content)
+    if response.status_code == 201:
+        return response.json()
+    else:
+        return None
+
 def discover_repo(gh_app_access_token, repo_url, branch, asset_id):
 
     # include access_token in git repo url to clone the repo for discovery
@@ -60,8 +79,10 @@ def discover_repo(gh_app_access_token, repo_url, branch, asset_id):
     try:
         print("Starting asset discovery & scan for repo [%s] and branch [%s]" % (repo_url, branch))
         #print(twigs_cmd)
+        #out = subprocess.check_output([twigs_cmd], shell=True)
         out = subprocess.check_output([twigs_cmd], stderr=dev_null_device, shell=True)
         print("Asset discovery & scan completed")
+        #print(out)
         return True
     except subprocess.CalledProcessError as e:
         print("Error running twigs discovery")
@@ -75,6 +96,27 @@ def set_requests_verify(verify):
 def get_requests_verify():
     global GoDaddyCABundle
     return GoDaddyCABundle
+
+def requests_get(url, headers, in_verify=None):
+    in_verify = get_requests_verify() if in_verify is None else in_verify
+    rc = 0
+    st = 1
+    while True:
+        try:
+            resp = requests.get(url, headers=headers, verify=in_verify)
+            resp_status_code = resp.status_code
+        except requests.exceptions.RequestException as e:
+            print("Retry count [%s] got exception: [%s]" % (rc, str(e)))
+            if rc >= 10:
+                print("Max retries exceeded....giving up...")
+                return None
+            else:
+                print("Sleeping for [%s] seconds..." % str(st))
+                time.sleep(st)
+                rc = rc + 1
+                st = st * 2
+                continue
+        return resp
 
 def requests_post(url, headers, json, in_verify=None):
     in_verify = get_requests_verify() if in_verify is None else in_verify
@@ -155,5 +197,9 @@ def delete_asset(asset_id):
     auth_data = "/?handle=" + handle + "&token=" + token + "&format=json"
     print("Deleting asset [%s]" % asset_id)
     response = requests_delete(url + asset_id + auth_data)
+    if response.status_code != 200:
+        print("Error deleting asset...")
+        print(response.status_code)
+        print(response.content)
     return response
 
