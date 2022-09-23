@@ -89,70 +89,7 @@ async def webhook(request):
 @router.register("pull_request", action="reopened")
 async def pull_request_opened(event, gh, *args, **kwargs):
     print("In pull_request opened webhook")
-    config = utils.get_config()
-    installation_id = event.data["installation"]["id"]
-
-    # get the installation access token for our GitHub App
-    installation_access_token = utils.get_installation_access_token(installation_id)
-
-    #print(event.data)
-    #print(installation_access_token)
-
-    # Extract required values from pull request event
-    pr_no = str(event.data['pull_request']['number'])
-    base_repo_url = event.data['pull_request']['base']['repo']['clone_url']
-    base_branch = event.data['pull_request']['base']['ref']
-    base_repo_full_name = event.data['pull_request']['base']['repo']['full_name']
-    base_asset_id = "%s_%s_%s" % (base_repo_full_name.replace('/','_'), base_branch, pr_no)
-    head_repo_url = event.data['pull_request']['head']['repo']['clone_url']
-    head_branch = event.data['pull_request']['head']['ref']
-    head_repo_full_name = event.data['pull_request']['head']['repo']['full_name']
-    head_asset_id = "%s_%s_%s" % (head_repo_full_name.replace('/','_'), head_branch, pr_no)
-    comments_url = event.data['pull_request']['comments_url']
-
-    # Discover and scan base asset
-    ret_val = utils.discover_repo(installation_access_token['token'], base_repo_url, base_branch, base_asset_id)
-
-    if ret_val == False:
-        print("Error while discovering asset for base branch [%s]" % base_branch)
-        return
-
-    # get the installation access token for our GitHub App
-    installation_access_token = utils.get_installation_access_token(installation_id)
-
-    # Discover and scan head asset
-    ret_val = utils.discover_repo(installation_access_token['token'], head_repo_url, head_branch, head_asset_id)
-
-    if ret_val == False:
-        print("Error while discovering asset for head branch [%s]" % head_branch)
-        utils.delete_asset(base_asset_id)
-        return
-
-    # Call TW API to compute vulnerability impact delta
-    impact_delta = utils.compute_vuln_impact_delta(base_asset_id, head_asset_id)
-    #print(impact_delta)
-
-    # get the installation access token for our GitHub App
-    installation_access_token = utils.get_installation_access_token(installation_id)
-
-    # Update PR request with information
-    pr_comment = utils.compose_pr_comment(impact_delta)
-    #print(comments_url)
-    #print(pr_comment)
-    headers = { "Accept": "application/vnd.github+json", "Authorization" : "Bearer "+installation_access_token['token'] }
-    data = { "body" : pr_comment }
-    response = utils.requests_post(comments_url, headers, data, True)
-    #print(response)
-    if response is not None and response.status_code == 201:
-        print("Added comment to pull_request")
-    else:
-        print("Error adding comment to pull_request")
-        print(response.status_code)
-        print(response.content)
-
-    # Delete discovered assets
-    utils.delete_asset(base_asset_id)
-    utils.delete_asset(head_asset_id)
+    await utils.process_pull_request(event.data)
 
 if __name__ == "__main__":  # pragma: no cover
     app = web.Application()

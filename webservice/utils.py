@@ -5,6 +5,8 @@ import configparser
 import requests
 import time
 import uuid
+import tempfile
+import json
 
 from gidgethub import apps
 
@@ -203,3 +205,12 @@ def delete_asset(asset_id):
         print(response.content)
     return response
 
+async def process_pull_request(event_data):
+    temp_json_file = tempfile.NamedTemporaryFile(mode='w', prefix='tw-', suffix='_ed.json', delete=False)
+    temp_json_file_name = temp_json_file.name
+    json.dump(event_data, temp_json_file)
+    temp_json_file.close()
+    base_path = os.path.dirname(os.path.realpath(__file__))
+    cmd = base_path + os.sep + '/pull_request_handler -f ' + temp_json_file_name
+    #print(cmd)
+    proc = subprocess.Popen([cmd], shell=True, stdin=None, stdout=None, stderr=None, close_fds=True)
