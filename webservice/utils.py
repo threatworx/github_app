@@ -183,11 +183,18 @@ def compose_pr_comment(impact_delta):
         return "No new vulnerabilities introduced in this pull request"
     else:
         prc = "Below is the list of new vulnerabilities introduced in this pull request:\n"
+        #prc = prc + "\n|Field|Value|\n|:---|:---|\n"
         for new_vuln in asset2_only_vulns:
-            prc = prc + "Vulnerability ID: " + new_vuln["vuln_id"] + "\n"
-            prc = prc + "CVSS Score: " + new_vuln["cvss_score"] + "\n"
-            prc = prc + "Affected Product: " + new_vuln["affected_product"] + "\n"
-            prc = prc + "-------------------------------------------------------------\n"
+            prc = prc + "\n|   |   |\n|:---|:---|\n"
+            prc = prc + "|Vulnerability ID|" + new_vuln["vuln_id"] + "|\n"
+            prc = prc + "|CVSS Score|" + new_vuln["cvss_score"] + "|\n"
+            if new_vuln["vuln_id"].startswith('CVE-'):
+                vuln_url = "https://nvd.nist.gov/vuln/detail/" + new_vuln["vuln_id"]
+                prc = prc + "|Reference|" + "[" + vuln_url + "](" + vuln_url + ")" + "|\n"
+            else:
+                prc = prc + "|Reference|" + new_vuln["vuln_url"] + "|\n"
+            prc = prc + "|Affected Dependency|" + new_vuln["affected_product"] + "|\n"
+            prc = prc + "|Dependency found in file|" + new_vuln["dependency_file"] + "|\n"
         return prc
 
 def delete_asset(asset_id):
@@ -205,7 +212,7 @@ def delete_asset(asset_id):
         print(response.content)
     return response
 
-async def process_pull_request(event_data):
+def process_pull_request(event_data):
     temp_json_file = tempfile.NamedTemporaryFile(mode='w', prefix='tw-', suffix='_ed.json', delete=False)
     temp_json_file_name = temp_json_file.name
     json.dump(event_data, temp_json_file)
