@@ -14,9 +14,69 @@ import utils
 def usage():
     print("Usage is pull_request_handler [-f <path_to_event_data_json_file>]")
 
+def get_changed_files_count(installation_access_token, pr_no):
+    print("In get_changed_files_count")
+    pr_url = "https://api.github.com/repos/%s/pulls/%s" % (base_repo_full_name, pr_no)
+    headers = { "Accept": "application/vnd.github+json", "Authorization" : "Bearer "+installation_access_token['token'] }
+    response = utils.requests_get(pr_url, headers, True)
+    if response.status_code != 200:
+        print("Error while retrieving count of files changed in Pull Request")
+        return 3001 # Do this to trigger discovery and scan
+    else:
+        response = response.json()
+        changed_files = response['changed_files']
+        print("Pull request has %s changed files" % str(changed_files))
+        return changed_files
+
+def check_relevant_files(installation_access_token, pr_no):
+    print("In check_relevant_files")
+    pr_files_url = "https://api.github.com/repos/%s/pulls/%s/files?per_page=100&page=" % (base_repo_full_name, pr_no)
+    headers = { "Accept": "application/vnd.github+json", "Authorization" : "Bearer "+installation_access_token['token'] }
+    relevant_files = ["go.mod", "Cargo.toml", "pom.xml", "dependencies.gradle", "package-lock.json", "package.json", ".props", ".csproj", "packages.config", "yarn.lock", "gemfile.lock", "Gemfile.lock", "requirements.txt", ".jar", ".dll"]
+    page_no = 1
+    while (True):
+        page_url = pr_files_url + str(page_no)
+        response = utils.requests_get(page_url, headers, True)
+        page_no = page_no + 1
+        if response.status_code != 200:
+            print("Encountered error while retrieving files from pull request")
+            print(response.status_code)
+            print(response.content)
+            relevant_file_found = True
+            # if something goes wrong, then should we run complete discovery and scan
+            return True
+        response = response.json()
+        if len(response) == 0:
+            # if there are zero entries then we are done
+            print("No relevant files found...")
+            return False
+        for tfile in response:
+            tfile_name = tfile['filename']
+            for rfile in relevant_files:
+                if tfile_name.endswith(rfile):
+                    print("Found relevant file [%s]" % tfile_name)
+                    return True
+    print("No relevant files found...")
+    return False
+
+def add_pr_comment(comments_url, installation_access_token, pr_comment):
+    #print(comments_url)
+    #print(pr_comment)
+    headers = { "Accept": "application/vnd.github+json", "Authorization" : "Bearer "+installation_access_token['token'] }
+    data = { "body" : pr_comment }
+    response = utils.requests_post(comments_url, headers, data, True)
+    #print(response)
+    if response is not None and response.status_code == 201:
+        print("Added comment to pull_request")
+    else:
+        print("Error adding comment to pull_request")
+        print(response.status_code)
+        print(response.content)
+
 os.nice(19)
 pid = os.getpid()
 
+MAX_FILES_IN_GH_PR_FILES_API = 3000
 json_file_name = None
 
 try:
@@ -64,11 +124,24 @@ head_repo_full_name = event_data['pull_request']['head']['repo']['full_name']
 head_asset_id = "%s_%s_%s" % (head_repo_full_name.replace('/','_'), head_branch, pr_no)
 comments_url = event_data['pull_request']['comments_url']
 
+# check if any project dependency files have been modified as part of this pull request
+if get_changed_files_count(installation_access_token, pr_no) <= MAX_FILES_IN_GH_PR_FILES_API and check_relevant_files(installation_access_token, pr_no) == False:
+    pr_comment = "No relevant changes found in this Pull Request for vulnerability assessment"
+    add_pr_comment(comments_url, installation_access_token, pr_comment)
+    # Delete the event_data json file
+    os.remove(json_file_name)
+    sys.exit(0)
+
+pr_comment = "ThreatWorx vulnerability assessment initiated"
+add_pr_comment(comments_url, installation_access_token, pr_comment)
+
 # Discover and scan base asset
 ret_val = utils.discover_repo(installation_access_token['token'], base_repo_url, base_branch, base_asset_id)
 
 if ret_val == False:
     print("Error while discovering asset for base branch [%s]" % base_branch)
+    pr_comment = "ThreatWorx vulnerability assessment encountered an error"
+    add_pr_comment(comments_url, installation_access_token, pr_comment)
     sys.exit(1)
 
 # get the installation access token for our GitHub App
@@ -80,10 +153,21 @@ ret_val = utils.discover_repo(installation_access_token['token'], head_repo_url,
 if ret_val == False:
     print("Error while discovering asset for head branch [%s]" % head_branch)
     utils.delete_asset(base_asset_id)
+    pr_comment = "ThreatWorx vulnerability assessment encountered an error"
+    add_pr_comment(comments_url, installation_access_token, pr_comment)
     sys.exit(1)
 
 # Call TW API to compute vulnerability impact delta
 impact_delta = utils.compute_vuln_impact_delta(base_asset_id, head_asset_id)
+if impact_delta is None:
+    print("Error running delta computation API")
+    utils.delete_asset(base_asset_id)
+    utils.delete_asset(head_asset_id)
+    os.remove(json_file_name)
+    pr_comment = "ThreatWorx vulnerability assessment encountered an error"
+    add_pr_comment(comments_url, installation_access_token, pr_comment)
+    sys.exit(1)
+
 #print(impact_delta)
 
 # get the installation access token for our GitHub App
@@ -91,18 +175,7 @@ installation_access_token = utils.get_installation_access_token(installation_id)
 
 # Update PR request with information
 pr_comment = utils.compose_pr_comment(impact_delta)
-#print(comments_url)
-#print(pr_comment)
-headers = { "Accept": "application/vnd.github+json", "Authorization" : "Bearer "+installation_access_token['token'] }
-data = { "body" : pr_comment }
-response = utils.requests_post(comments_url, headers, data, True)
-#print(response)
-if response is not None and response.status_code == 201:
-    print("Added comment to pull_request")
-else:
-    print("Error adding comment to pull_request")
-    print(response.status_code)
-    print(response.content)
+add_pr_comment(comments_url, installation_access_token, pr_comment)
 
 # Delete discovered assets
 utils.delete_asset(base_asset_id)
