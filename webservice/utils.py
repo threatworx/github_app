@@ -167,7 +167,11 @@ def compute_vuln_impact_delta(assetid1, assetid2):
     url = "https://" + instance + "/api/v1/asset_impact_delta/"
     auth_data = "?handle=" + handle + "&token=" + token + "&format=json"
     req_payload = { "asset1_id": assetid1, "asset2_id": assetid2 }
+    filter = config['github_app'].get('vulnerability_filter')
+    if filter is not None and len(filter.strip()) > 0:
+        req_payload['filter'] = json.loads(filter.strip())
     print("Computing vulnerability impact delta between assets [%s] and [%s]" % (assetid1, assetid2))
+    print(req_payload)
     response = requests_post(url + auth_data, None, req_payload)
     if response.status_code != 200:
         print("Error computing vulnerability impact delta")
