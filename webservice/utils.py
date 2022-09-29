@@ -171,7 +171,7 @@ def compute_vuln_impact_delta(assetid1, assetid2):
     if filter is not None and len(filter.strip()) > 0:
         req_payload['filter'] = json.loads(filter.strip())
     print("Computing vulnerability impact delta between assets [%s] and [%s]" % (assetid1, assetid2))
-    print(req_payload)
+    #print(req_payload)
     response = requests_post(url + auth_data, None, req_payload)
     if response.status_code != 200:
         print("Error computing vulnerability impact delta")
