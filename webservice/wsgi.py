@@ -1,4 +1,4 @@
-from __main__ import app
+from flapp import app
 
 if __name__ == "__main__":
     app.run()
