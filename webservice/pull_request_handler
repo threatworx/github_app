@@ -105,6 +105,9 @@ with open(json_file_name, 'r') as fd:
 
 config = utils.get_config()
 installation_id = event_data["installation"]["id"]
+retain_base_refs = []
+if 'retain_base_refs' in config['github_app']:
+    retain_base_refs = config['github_app']['retain_base_refs'].strip().split(',')
 
 # get the installation access token for our GitHub App
 installation_access_token = utils.get_installation_access_token(installation_id)
@@ -117,7 +120,11 @@ pr_no = str(event_data['pull_request']['number'])
 base_repo_url = event_data['pull_request']['base']['repo']['clone_url']
 base_branch = event_data['pull_request']['base']['ref']
 base_repo_full_name = event_data['pull_request']['base']['repo']['full_name']
-base_asset_id = "%s_%s_%s" % (base_repo_full_name.replace('/','_'), base_branch, pr_no)
+purge_base_asset = base_branch not in retain_base_refs
+if purge_base_asset:
+    base_asset_id = "%s_%s_%s" % (base_repo_full_name.replace('/','_'), base_branch, pr_no)
+else:
+    base_asset_id = "%s_%s" % (base_repo_full_name.replace('/','_'), base_branch)
 head_repo_url = event_data['pull_request']['head']['repo']['clone_url']
 head_branch = event_data['pull_request']['head']['ref']
 head_repo_full_name = event_data['pull_request']['head']['repo']['full_name']
@@ -152,7 +159,8 @@ ret_val = utils.discover_repo(installation_access_token['token'], head_repo_url,
 
 if ret_val == False:
     print("Error while discovering asset for head branch [%s]" % head_branch)
-    utils.delete_asset(base_asset_id)
+    if purge_base_asset:
+        utils.delete_asset(base_asset_id)
     pr_comment = "ThreatWorx vulnerability assessment encountered an error"
     add_pr_comment(comments_url, installation_access_token, pr_comment)
     sys.exit(1)
@@ -161,7 +169,8 @@ if ret_val == False:
 impact_delta = utils.compute_vuln_impact_delta(base_asset_id, head_asset_id)
 if impact_delta is None:
     print("Error running delta computation API")
-    utils.delete_asset(base_asset_id)
+    if purge_base_branch:
+        utils.delete_asset(base_asset_id)
     utils.delete_asset(head_asset_id)
     os.remove(json_file_name)
     pr_comment = "ThreatWorx vulnerability assessment encountered an error"
@@ -178,7 +187,8 @@ pr_comment = utils.compose_pr_comment(impact_delta)
 add_pr_comment(comments_url, installation_access_token, pr_comment)
 
 # Delete discovered assets
-utils.delete_asset(base_asset_id)
+if purge_base_asset:
+    utils.delete_asset(base_asset_id)
 utils.delete_asset(head_asset_id)
 
 # Delete the event_data json file
