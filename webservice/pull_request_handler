@@ -169,7 +169,7 @@ if ret_val == False:
 impact_delta = utils.compute_vuln_impact_delta(base_asset_id, head_asset_id)
 if impact_delta is None:
     print("Error running delta computation API")
-    if purge_base_branch:
+    if purge_base_asset:
         utils.delete_asset(base_asset_id)
     utils.delete_asset(head_asset_id)
     os.remove(json_file_name)
