@@ -122,13 +122,13 @@ base_branch = event_data['pull_request']['base']['ref']
 base_repo_full_name = event_data['pull_request']['base']['repo']['full_name']
 purge_base_asset = base_branch not in retain_base_refs
 if purge_base_asset:
-    base_asset_id = "%s_%s_%s" % (base_repo_full_name.replace('/','_'), base_branch, pr_no)
+    base_asset_id = "%s_%s_%s" % (base_repo_full_name.replace('/','_'), base_branch.replace('/','_'), pr_no)
 else:
-    base_asset_id = "%s_%s" % (base_repo_full_name.replace('/','_'), base_branch)
+    base_asset_id = "%s_%s" % (base_repo_full_name.replace('/','_'), base_branch.replace('/','_'))
 head_repo_url = event_data['pull_request']['head']['repo']['clone_url']
 head_branch = event_data['pull_request']['head']['ref']
 head_repo_full_name = event_data['pull_request']['head']['repo']['full_name']
-head_asset_id = "%s_%s_%s" % (head_repo_full_name.replace('/','_'), head_branch, pr_no)
+head_asset_id = "%s_%s_%s" % (head_repo_full_name.replace('/','_'), head_branch.replace('/','_'), pr_no)
 comments_url = event_data['pull_request']['comments_url']
 
 # check if any project dependency files have been modified as part of this pull request

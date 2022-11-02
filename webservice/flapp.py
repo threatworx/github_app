@@ -65,7 +65,8 @@ def webhook():
         config = utils.get_config()
         secret = config['github_app']['webhook_secret']
         event = sansio.Event.from_http(request.headers, request.data, secret=secret)
-        if event.event == "pull_request" and (event.data["action"] == "opened" or event.data["action"] == "reopened"):
+        #print("%s - %s" % (event.event, event.data["action"]))
+        if event.event == "pull_request" and (event.data["action"] == "opened" or event.data["action"] == "reopened" or event.data["action"] == "synchronize"):
             print("In pull_request opened webhook")
             utils.process_pull_request(event.data)
         return "", 200, {'Content-Type': 'text/plain'}
