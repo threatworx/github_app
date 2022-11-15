@@ -65,6 +65,18 @@ def get_installation_access_token(installation_id):
     else:
         return None
 
+def get_repo_metadata(gh_app_access_token, repo_full_name):
+    repo_api_url = "https://api.github.com/repos/%s" % repo_full_name
+    headers = { "Accept": "application/vnd.github+json", "Authorization" : "Bearer "+gh_app_access_token }
+    response = requests_get(repo_api_url, headers, True)
+    if response is not None and response.status_code == 200:
+        return response.json()
+    else:
+        print("Unable to get JSON metadata for repo [%s]" % repo_full_name)
+        #print(response.status_code)
+        #print(response.content)
+        return None
+
 def discover_repo(gh_app_access_token, repo_url, branch, asset_id):
 
     # include access_token in git repo url to clone the repo for discovery
@@ -76,7 +88,9 @@ def discover_repo(gh_app_access_token, repo_url, branch, asset_id):
     instance = config['threatworx']['instance']
     dev_null_device = open(os.devnull, "w")
 
-    twigs_cmd = "twigs -v --handle '%s' --token '%s' --instance '%s' --apply_policy SYNC_SCAN repo --repo '%s' --branch '%s' --assetid '%s' --assetname '%s'" % (handle, token, instance, updated_repo_url, branch, asset_id, asset_id)
+    twigs_cmd = "twigs -v --run_id 'github_app' --handle '%s' --token '%s' --instance '%s' --apply_policy SYNC_SCAN repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, token, instance, updated_repo_url, asset_id, asset_id)
+    if branch is not None:
+        twigs_cmd = twigs_cmd + " --branch '%s'" % branch
 
     try:
         print("Starting asset discovery & scan for repo [%s] and branch [%s]" % (repo_url, branch))
@@ -216,12 +230,25 @@ def delete_asset(asset_id):
         print(response.content)
     return response
 
-def process_pull_request(event_data):
+def launch_request_handler_process(python_script_name, event_data):
     temp_json_file = tempfile.NamedTemporaryFile(mode='w', prefix='tw-', suffix='_ed.json', delete=False)
     temp_json_file_name = temp_json_file.name
     json.dump(event_data, temp_json_file)
     temp_json_file.close()
     base_path = os.path.dirname(os.path.realpath(__file__))
-    cmd = base_path + os.sep + '/pull_request_handler -f ' + temp_json_file_name
+    cmd = base_path + os.sep + python_script_name + ' -f ' + temp_json_file_name
     #print(cmd)
     proc = subprocess.Popen([cmd], shell=True, stdin=None, stdout=None, stderr=None, close_fds=True)
+
+def process_pull_request(event_data):
+    launch_request_handler_process('pull_request_handler', event_data)
+
+def process_push_request(event_data):
+    launch_request_handler_process('push_request_handler', event_data)
+
+def process_repos_added_request(event_data):
+    launch_request_handler_process('repos_added_request_handler', event_data)
+
+def process_repos_removed_request(event_data):
+    launch_request_handler_process('repos_removed_request_handler', event_data)
+

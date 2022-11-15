@@ -69,6 +69,15 @@ def webhook():
         if event.event == "pull_request" and (event.data["action"] == "opened" or event.data["action"] == "reopened" or event.data["action"] == "synchronize"):
             print("In pull_request opened webhook")
             utils.process_pull_request(event.data)
+        if event.event == "push" and not event.data["ref"].startswith("refs/tags/") and len(event.data["commits"]) > 0:
+                utils.process_push_request(event.data)
+        if event.event == "installation_repositories" and (event.data["action"] == "added" or event.data["action"] == "removed"):
+            print("In installation webhook for repositories [%s]" % event.data["action"])
+            if event.data["action"] == "added":
+                utils.process_repos_added_request(event.data)
+            elif event.data["action"] == "removed":
+                utils.process_repos_removed_request(event.data)
+
         return "", 200, {'Content-Type': 'text/plain'}
     except Exception as exc:
         traceback.print_exc(file=sys.stderr)

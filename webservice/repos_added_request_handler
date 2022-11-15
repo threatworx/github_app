@@ -1,0 +1,77 @@
+#!/usr/bin/python3 -u 
+
+import os
+import sys
+import getopt
+import json
+from multiprocessing import Pool
+
+import utils
+
+installation_id = None
+max_concurreny = 2 # TODO tweak
+
+def usage():
+    print("Usage is repos_added_request_handler [-f <path_to_event_data_json_file>]")
+
+def discover_repo(repo_full_name):
+    # get the installation access token for our GitHub App
+    installation_access_token = utils.get_installation_access_token(installation_id)
+    #print(installation_access_token)
+
+    repo_url = "https://github.com/%s.git" % repo_full_name
+    asset_id = repo_full_name.replace('/','_') # don't include default branch
+
+    # Discover and scan asset
+    ret_val = utils.discover_repo(installation_access_token['token'], repo_url, None, asset_id)
+
+    if ret_val == False:
+        print("Error while discovering asset for default branch")
+
+if __name__ == '__main__':
+
+    os.nice(19)
+    pid = os.getpid()
+
+    json_file_name = None
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'f:', ['file'])
+    except getopt.GetoptError:
+        usage()
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt in ('-h', '--help'):
+            usage()
+            sys.exit(1)
+        elif opt in ('-f', '--file'):
+            json_file_name = arg
+        else:
+            usage()
+            sys.exit(2)
+
+    if json_file_name is None:
+        print("Required argument [file] is missing")
+        usage()
+        sys.exit(1)
+
+    event_data = None
+    with open(json_file_name, 'r') as fd:
+        event_data = json.load(fd)
+
+    config = utils.get_config()
+    installation_id = event_data["installation"]["id"]
+
+    repos = []
+    # compile the list of repos added to be processed
+    for repo in event_data["repositories_added"]:
+        repos.append(repo["full_name"])
+
+    # discover the repos added as assets in TW
+    with Pool(processes=max_concurreny) as pool:
+        pool.map(discover_repo, repos)
+
+
+    # Delete the event_data json file
+    os.remove(json_file_name)
+

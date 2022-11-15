@@ -1,0 +1,78 @@
+#!/usr/bin/python3 -u 
+
+import os
+import sys
+import getopt
+import json
+
+import utils
+
+def usage():
+    print("Usage is push_request_handler [-f <path_to_event_data_json_file>]")
+
+os.nice(19)
+pid = os.getpid()
+
+json_file_name = None
+
+try:
+    opts, args = getopt.getopt(sys.argv[1:], 'f:', ['file'])
+except getopt.GetoptError:
+    usage()
+    sys.exit(2)
+for opt, arg in opts:
+    if opt in ('-h', '--help'):
+        usage()
+        sys.exit(1)
+    elif opt in ('-f', '--file'):
+        json_file_name = arg
+    else:
+        usage()
+        sys.exit(2)
+
+if json_file_name is None:
+    print("Required argument [file] is missing")
+    usage()
+    sys.exit(1)
+
+event_data = None
+with open(json_file_name, 'r') as fd:
+    event_data = json.load(fd)
+
+config = utils.get_config()
+installation_id = event_data["installation"]["id"]
+
+# get the installation access token for our GitHub App
+installation_access_token = utils.get_installation_access_token(installation_id)
+#print(installation_access_token)
+
+repo_full_name = event_data['repository']['full_name']
+repo_metadata_json = utils.get_repo_metadata(installation_access_token['token'], repo_full_name)
+if repo_metadata_json is None:
+    print("Unable to get default branch for repo [%s]" % repo_full_name)
+    os.remove(json_file_name)
+    sys.exit(1)
+default_branch = repo_metadata_json["default_branch"]
+
+# Extract required values from push request event
+base_branch = event_data['ref'].split('/')[-1]
+# only handle create/update asset for default branch (typically main/master)
+if base_branch != default_branch:
+    os.remove(json_file_name)
+    sys.exit(1)
+base_repo_url = event_data['repository']['clone_url']
+base_asset_id = repo_full_name.replace('/','_') # don't include default branch
+
+print("In push webhook for repo [%s]" % repo_full_name)
+
+# Discover and scan asset
+ret_val = utils.discover_repo(installation_access_token['token'], base_repo_url, None, base_asset_id)
+
+if ret_val == False:
+    print("Error while discovering asset for branch [%s]" % base_branch)
+    os.remove(json_file_name)
+    sys.exit(1)
+
+# Delete the event_data json file
+os.remove(json_file_name)
+
