@@ -319,3 +319,9 @@ def process_repos_added_request(event_data):
 
 def process_repos_removed_request(event_data):
     launch_request_handler_process('repos_removed_request_handler', event_data)
+
+def process_installation_created_request(event_data):
+    launch_request_handler_process('installation_created_request_handler', event_data)
+
+def process_installation_deleted_request(event_data):
+    launch_request_handler_process('installation_deleted_request_handler', event_data)

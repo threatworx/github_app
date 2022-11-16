@@ -64,15 +64,23 @@ def webhook():
         #print(request.data)
         config = utils.get_config()
         secret = config['github_app']['webhook_secret']
+        base_discovery_enabled = config['github_app'].getboolean('base_discovery_enabled')
+        pr_enabled = config['github_app'].getboolean('pr_enabled')
         event = sansio.Event.from_http(request.headers, request.data, secret=secret)
         #print("%s - %s" % (event.event, event.data["action"]))
-        if event.event == "pull_request" and (event.data["action"] == "opened" or event.data["action"] == "reopened" or event.data["action"] == "synchronize"):
+        if event.event == "pull_request" and (event.data["action"] == "opened" or event.data["action"] == "reopened" or event.data["action"] == "synchronize") and pr_enabled:
             print("In pull_request opened webhook")
             utils.process_pull_request(event.data)
-        if event.event == "push" and not event.data["ref"].startswith("refs/tags/") and len(event.data["commits"]) > 0:
+        if event.event == "push" and not event.data["ref"].startswith("refs/tags/") and len(event.data["commits"]) > 0 and base_discovery_enabled:
                 utils.process_push_request(event.data)
-        if event.event == "installation_repositories" and (event.data["action"] == "added" or event.data["action"] == "removed"):
-            print("In installation webhook for repositories [%s]" % event.data["action"])
+        if event.event == "installation" and (event.data["action"] == "created" or event.data["action"] == "deleted") and base_discovery_enabled:
+            print("In installation webhook for [%s]" % event.data["action"])
+            if event.data["action"] == "created":
+                utils.process_installation_created_request(event.data)
+            elif event.data["action"] == "deleted":
+                utils.process_installation_deleted_request(event.data)
+        if event.event == "installation_repositories" and (event.data["action"] == "added" or event.data["action"] == "removed") and base_discovery_enabled:
+            print("In installation_webhook for repositories [%s]" % event.data["action"])
             if event.data["action"] == "added":
                 utils.process_repos_added_request(event.data)
             elif event.data["action"] == "removed":

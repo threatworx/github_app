@@ -1,0 +1,53 @@
+#!/usr/bin/python3 -u 
+
+import os
+import sys
+import getopt
+import json
+
+import utils
+
+def usage():
+    print("Usage is installation_deleted_request_handler [-f <path_to_event_data_json_file>]")
+
+os.nice(19)
+pid = os.getpid()
+
+json_file_name = None
+
+try:
+    opts, args = getopt.getopt(sys.argv[1:], 'f:', ['file'])
+except getopt.GetoptError:
+    usage()
+    sys.exit(2)
+for opt, arg in opts:
+    if opt in ('-h', '--help'):
+        usage()
+        sys.exit(1)
+    elif opt in ('-f', '--file'):
+        json_file_name = arg
+    else:
+        usage()
+        sys.exit(2)
+
+if json_file_name is None:
+    print("Required argument [file] is missing")
+    usage()
+    sys.exit(1)
+
+event_data = None
+with open(json_file_name, 'r') as fd:
+    event_data = json.load(fd)
+
+# process the list of repos removed
+for repo in event_data["repositories"]:
+    repo_full_name = repo["full_name"]
+    
+    asset_id = repo_full_name.replace('/','_') # don't include default branch
+
+    # delete the asset for this repo
+    utils.delete_asset(asset_id)
+
+# Delete the event_data json file
+os.remove(json_file_name)
+
