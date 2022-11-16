@@ -4,6 +4,7 @@ import os
 import sys
 import getopt
 import json
+import tempfile
 
 import utils
 
@@ -72,7 +73,7 @@ def add_pr_comment(comments_url, installation_access_token, pr_comment):
 os.nice(19)
 pid = os.getpid()
 
-MAX_FILES_IN_GH_PR_FILES_API = 3000
+#MAX_FILES_IN_GH_PR_FILES_API = 3000
 json_file_name = None
 
 try:
@@ -101,26 +102,18 @@ with open(json_file_name, 'r') as fd:
 
 config = utils.get_config()
 installation_id = event_data["installation"]["id"]
-retain_base_refs = []
-if 'retain_base_refs' in config['github_app']:
-    retain_base_refs = config['github_app']['retain_base_refs'].strip().split(',')
 
 # get the installation access token for our GitHub App
 installation_access_token = utils.get_installation_access_token(installation_id)
 
 #print(event_data)
-#print(installation_access_token)
 
 # Extract required values from pull request event
 pr_no = str(event_data['pull_request']['number'])
 base_repo_url = event_data['pull_request']['base']['repo']['clone_url']
 base_branch = event_data['pull_request']['base']['ref']
 base_repo_full_name = event_data['pull_request']['base']['repo']['full_name']
-purge_base_asset = base_branch not in retain_base_refs
-if purge_base_asset:
-    base_asset_id = "%s_%s_%s" % (base_repo_full_name.replace('/','_'), base_branch.replace('/','_'), pr_no)
-else:
-    base_asset_id = "%s_%s" % (base_repo_full_name.replace('/','_'), base_branch.replace('/','_'))
+base_asset_id = "%s_%s" % (base_repo_full_name.replace('/','_'), base_branch.replace('/','_'))
 head_repo_url = event_data['pull_request']['head']['repo']['clone_url']
 head_branch = event_data['pull_request']['head']['ref']
 head_repo_full_name = event_data['pull_request']['head']['repo']['full_name']
@@ -128,71 +121,85 @@ head_asset_id = "%s_%s_%s" % (head_repo_full_name.replace('/','_'), head_branch.
 comments_url = event_data['pull_request']['comments_url']
 
 # check if any project dependency files have been modified as part of this pull request
-if get_changed_files_count(installation_access_token, pr_no) <= MAX_FILES_IN_GH_PR_FILES_API and check_relevant_files(installation_access_token, pr_no) == False:
-    pr_comment = "No relevant changes found in this Pull Request for vulnerability assessment"
-    add_pr_comment(comments_url, installation_access_token, pr_comment)
-    # Delete the event_data json file
-    os.remove(json_file_name)
-    sys.exit(0)
+#if get_changed_files_count(installation_access_token, pr_no) <= MAX_FILES_IN_GH_PR_FILES_API and check_relevant_files(installation_access_token, pr_no) == False:
+#    pr_comment = "No relevant changes found in this Pull Request for vulnerability assessment"
+#    add_pr_comment(comments_url, installation_access_token, pr_comment)
+#    # Delete the event_data json file
+#    os.remove(json_file_name)
+#    sys.exit(0)
 
 pr_comment = "ThreatWorx vulnerability assessment initiated"
 add_pr_comment(comments_url, installation_access_token, pr_comment)
 
-# Discover and scan base asset
-ret_val = utils.discover_repo(installation_access_token['token'], base_repo_url, base_branch, base_asset_id)
+# get temp file for base asset inventory
+basefile = tempfile.NamedTemporaryFile()
 
+# Discover base asset locally without scan
+ret_val = utils.discover_repo(installation_access_token['token'], base_repo_url, base_branch, base_asset_id, True, basefile.name)
 if ret_val == False:
     print("Error while discovering asset for base branch [%s]" % base_branch)
+    os.remove(json_file_name)
     pr_comment = "ThreatWorx vulnerability assessment encountered an error"
     add_pr_comment(comments_url, installation_access_token, pr_comment)
-    # Delete the event_data json file
-    os.remove(json_file_name)
     sys.exit(1)
 
 # get the installation access token for our GitHub App
 installation_access_token = utils.get_installation_access_token(installation_id)
 
-# Discover and scan head asset
-ret_val = utils.discover_repo(installation_access_token['token'], head_repo_url, head_branch, head_asset_id)
+# get temp file for head asset inventory
+headfile = tempfile.NamedTemporaryFile()
 
+# Discover head asset locally without scan
+ret_val = utils.discover_repo(installation_access_token['token'], head_repo_url, head_branch, head_asset_id, True, headfile.name)
 if ret_val == False:
     print("Error while discovering asset for head branch [%s]" % head_branch)
-    if purge_base_asset:
-        utils.delete_asset(base_asset_id)
+    os.remove(json_file_name)
     pr_comment = "ThreatWorx vulnerability assessment encountered an error"
     add_pr_comment(comments_url, installation_access_token, pr_comment)
-    # Delete the event_data json file
-    os.remove(json_file_name)
     sys.exit(1)
 
-# Call TW API to compute vulnerability impact delta
-impact_delta = utils.compute_vuln_impact_delta(base_asset_id, head_asset_id)
-if impact_delta is None:
-    print("Error running delta computation API")
-    if purge_base_asset:
-        utils.delete_asset(base_asset_id)
+# create diff json for base and head
+diff_file_name = utils.create_diff_json(basefile.name, headfile.name)
+if diff_file_name == None:
+    print("No diff to proess")
+    os.remove(json_file_name)
+    os.remove(diff_file_name)
+    pr_comment = "No relevant changes found in this Pull Request for vulnerability assessment"
+    add_pr_comment(comments_url, installation_access_token, pr_comment)
+    sys.exit(1)
+
+# upload diff asset and run a scan
+ret_val = utils.scan_diff(head_asset_id, diff_file_name)
+if ret_val == False:
+    print("Error scanning diff asset")
+    os.remove(json_file_name)
+    os.remove(diff_file_name)
     utils.delete_asset(head_asset_id)
-    os.remove(json_file_name)
     pr_comment = "ThreatWorx vulnerability assessment encountered an error"
     add_pr_comment(comments_url, installation_access_token, pr_comment)
-    # Delete the event_data json file
-    os.remove(json_file_name)
     sys.exit(1)
 
-#print(impact_delta)
+# Call TW API to get vulnerability impact for diff asset 
+impacts = utils.get_impacts(head_asset_id)
+if impacts is None:
+    print("Error getting vuln impacts")
+    os.remove(json_file_name)
+    os.remove(diff_file_name)
+    utils.delete_asset(head_asset_id)
+    pr_comment = "ThreatWorx vulnerability assessment encountered an error"
+    add_pr_comment(comments_url, installation_access_token, pr_comment)
+    sys.exit(1)
 
 # get the installation access token for our GitHub App
 installation_access_token = utils.get_installation_access_token(installation_id)
 
 # Update PR request with information
-pr_comment = utils.compose_pr_comment(impact_delta)
+pr_comment = utils.compose_pr_comment(impacts)
 add_pr_comment(comments_url, installation_access_token, pr_comment)
 
-# Delete discovered assets
-if purge_base_asset:
-    utils.delete_asset(base_asset_id)
+# Delete temp asset
 utils.delete_asset(head_asset_id)
 
 # Delete the event_data json file
 os.remove(json_file_name)
-
+os.remove(diff_file_name)

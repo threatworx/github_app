@@ -15,6 +15,29 @@ GoDaddyCABundle = True
 CONFIG_FILE = '/opt/tw_github_app/config/config.ini'
 gh_app_manifest_state = None
 
+def create_diff_json(basefilename, headfilename):
+    bf = open(basefilename, 'r')
+    bf_json = json.loads(bf.read())
+    hf = open(headfilename, 'r')
+    hf_json = json.loads(hf.read())
+    bf.close()
+    hf.close()
+
+    bf_set = set(bf_json[0]['products'])
+    hf_set = set(hf_json[0]['products'])
+
+    diff_set = hf_set - bf_set
+
+    diff_products = list(diff_set)
+    if len(diff_products) == 0:
+        return None
+
+    hf_json[0]['products'] = diff_products
+    diff_json_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
+    diff_json_file.write(json.dumps(hf_json, ensure_ascii=False, indent=4))
+    diff_json_file.close()
+    return diff_json_file.name 
+
 def get_config(force_read = False):
     global config
     if force_read == False and config is not None:
@@ -77,7 +100,26 @@ def get_repo_metadata(gh_app_access_token, repo_full_name):
         #print(response.content)
         return None
 
-def discover_repo(gh_app_access_token, repo_url, branch, asset_id):
+def scan_diff(asset_id, diff_json_file):
+    config = get_config()
+    handle = config['threatworx']['handle']
+    token = config['threatworx']['token']
+    instance = config['threatworx']['instance']
+    dev_null_device = open(os.devnull, "w")
+
+    twigs_cmd = "twigs -v --handle '%s' --token '%s' --instance '%s' --apply_policy SYNC_SCAN --run_id github_app sbom --input '%s' --standard threatworx --format json" % (handle, token, instance, diff_json_file)
+    print("Starting scan for diff asset [%s]" % (asset_id))
+
+    try:
+        out = subprocess.check_output([twigs_cmd], stderr=dev_null_device, shell=True)
+        print("Asset discovery & scan completed")
+        return True
+    except subprocess.CalledProcessError as e:
+        print("Error running twigs discovery")
+        print(e)
+        return False
+
+def discover_repo(gh_app_access_token, repo_url, branch, asset_id, no_scan=False, outfile=None):
 
     # include access_token in git repo url to clone the repo for discovery
     updated_repo_url = "https://x-access-token:" + gh_app_access_token + '@' + repo_url.split('//')[1]
@@ -88,12 +130,16 @@ def discover_repo(gh_app_access_token, repo_url, branch, asset_id):
     instance = config['threatworx']['instance']
     dev_null_device = open(os.devnull, "w")
 
-    twigs_cmd = "twigs -v --run_id 'github_app' --handle '%s' --token '%s' --instance '%s' --apply_policy SYNC_SCAN repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, token, instance, updated_repo_url, asset_id, asset_id)
+    if no_scan:
+        twigs_cmd = "twigs -v --handle '%s' --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, outfile, updated_repo_url, asset_id, asset_id)
+        print("Starting asset discovery for repo [%s] and branch [%s]" % (repo_url, branch))
+    else:
+        twigs_cmd = "twigs -v --handle '%s' --token '%s' --instance '%s' --apply_policy SYNC_SCAN --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, token, instance, updated_repo_url, asset_id, asset_id)
+        print("Starting asset discovery & scan for repo [%s] and branch [%s]" % (repo_url, branch))
     if branch is not None:
         twigs_cmd = twigs_cmd + " --branch '%s'" % branch
 
     try:
-        print("Starting asset discovery & scan for repo [%s] and branch [%s]" % (repo_url, branch))
         #print(twigs_cmd)
         #out = subprocess.check_output([twigs_cmd], shell=True)
         out = subprocess.check_output([twigs_cmd], stderr=dev_null_device, shell=True)
@@ -195,14 +241,36 @@ def compute_vuln_impact_delta(assetid1, assetid2):
     else:
         return response.json()
 
-def compose_pr_comment(impact_delta):
-    asset2_only_vulns = impact_delta["asset2_only_vulns"]
-    if len(asset2_only_vulns) == 0:
+def get_impacts(assetid):
+    config = get_config()
+    handle = config['threatworx']['handle']
+    token = config['threatworx']['token']
+    instance = config['threatworx']['instance']
+    url = "https://" + instance + "/api/v1/impacts/"
+    auth_data = "?handle=" + handle + "&token=" + token + "&format=json"
+    req_payload = { "asset_ids": [assetid] }
+    filter = config['github_app'].get('vulnerability_filter')
+    if filter is not None and len(filter.strip()) > 0:
+        req_payload['filter'] = json.loads(filter.strip())
+    print("Getting vulnerability impacts for asset [%s]" % (assetid))
+    #print(req_payload)
+    response = requests_post(url + auth_data, None, req_payload)
+    if response.status_code != 200:
+        print("Error vulnerability impacts")
+        print(response.status_code)
+        print(response.content)
+        return None
+    else:
+        return response.json()
+
+def compose_pr_comment(impacts):
+    diff_vulns = impacts["impacts"]
+    if len(diff_vulns) == 0:
         return "No new vulnerabilities introduced in this pull request"
     else:
         prc = "Below is the list of new vulnerabilities introduced in this pull request:\n"
         #prc = prc + "\n|Field|Value|\n|:---|:---|\n"
-        for new_vuln in asset2_only_vulns:
+        for new_vuln in diff_vulns:
             prc = prc + "\n|   |   |\n|:---|:---|\n"
             prc = prc + "|Vulnerability ID|" + new_vuln["vuln_id"] + "|\n"
             prc = prc + "|CVSS Score|" + new_vuln["cvss_score"] + "|\n"
@@ -251,4 +319,3 @@ def process_repos_added_request(event_data):
 
 def process_repos_removed_request(event_data):
     launch_request_handler_process('repos_removed_request_handler', event_data)
-
