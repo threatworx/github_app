@@ -8,24 +8,8 @@ from multiprocessing import Pool
 
 import utils
 
-installation_id = None
-
 def usage():
     print("Usage is installation_created_request_handler [-f <path_to_event_data_json_file>]")
-
-def discover_repo(repo_full_name):
-    # get the installation access token for our GitHub App
-    installation_access_token = utils.get_installation_access_token(installation_id)
-    #print(installation_access_token)
-
-    repo_url = "https://github.com/%s.git" % repo_full_name
-    asset_id = repo_full_name.replace('/','_') # don't include default branch
-
-    # Discover and scan asset
-    ret_val = utils.discover_repo(installation_access_token['token'], repo_url, None, asset_id)
-
-    if ret_val == False:
-        print("Error while discovering asset for default branch")
 
 if __name__ == '__main__':
 
@@ -70,11 +54,11 @@ if __name__ == '__main__':
     repos = []
     # compile the list of repos added to be processed
     for repo in event_data["repositories"]:
-        repos.append(repo["full_name"])
+        repos.append((repo["full_name"], installation_id))
 
     # discover the repos added as assets in TW
     with Pool(processes=max_concurrency) as pool:
-        pool.map(discover_repo, repos)
+        pool.map(utils.discover_repo_wrapper, repos)
 
     # Delete the event_data json file
     os.remove(json_file_name)

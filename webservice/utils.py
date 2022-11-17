@@ -100,6 +100,23 @@ def get_repo_metadata(gh_app_access_token, repo_full_name):
         #print(response.content)
         return None
 
+def get_installation_repositories(gh_app_access_token):
+    repo_api_url = "https://api.github.com/installation/repositories?per_page=100&page=%s"
+    headers = { "Accept": "application/vnd.github+json", "Authorization" : "Bearer "+gh_app_access_token }
+    page_no = 1
+    repos_list = []
+    while True:
+        temp_repo_api_url = repo_api_url % page_no
+        response = requests_get(temp_repo_api_url, headers, True)
+        if response is not None and response.status_code == 200:
+            repos = response.json()['repositories']
+            if len(repos) == 0:
+                break
+            for repo in repos:
+                repos_list.append(repo['full_name'])
+            page_no = page_no + 1
+    return repos_list
+
 def scan_diff(asset_id, diff_json_file):
     config = get_config()
     handle = config['threatworx']['handle']
@@ -118,6 +135,22 @@ def scan_diff(asset_id, diff_json_file):
         print("Error running twigs discovery")
         print(e)
         return False
+
+def discover_repo_wrapper(data):
+    repo_full_name = data[0]
+    installation_id = data[1]
+    # get the installation access token for our GitHub App
+    installation_access_token = get_installation_access_token(installation_id)
+    #print(installation_access_token)
+
+    repo_url = "https://github.com/%s.git" % repo_full_name
+    asset_id = repo_full_name.replace('/','_') # don't include default branch
+
+    # Discover and scan asset
+    ret_val = discover_repo(installation_access_token['token'], repo_url, None, asset_id)
+
+    if ret_val == False:
+        print("Error while discovering asset for default branch")
 
 def discover_repo(gh_app_access_token, repo_url, branch, asset_id, no_scan=False, outfile=None):
 
@@ -227,7 +260,7 @@ def compute_vuln_impact_delta(assetid1, assetid2):
     url = "https://" + instance + "/api/v1/asset_impact_delta/"
     auth_data = "?handle=" + handle + "&token=" + token + "&format=json"
     req_payload = { "asset1_id": assetid1, "asset2_id": assetid2 }
-    filter = config['github_app'].get('vulnerability_filter')
+    filter = config['github_app'].get('pr_vulnerability_filter')
     if filter is not None and len(filter.strip()) > 0:
         req_payload['filter'] = json.loads(filter.strip())
     print("Computing vulnerability impact delta between assets [%s] and [%s]" % (assetid1, assetid2))
@@ -249,7 +282,7 @@ def get_impacts(assetid):
     url = "https://" + instance + "/api/v1/impacts/"
     auth_data = "?handle=" + handle + "&token=" + token + "&format=json"
     req_payload = { "asset_ids": [assetid] }
-    filter = config['github_app'].get('vulnerability_filter')
+    filter = config['github_app'].get('pr_vulnerability_filter')
     if filter is not None and len(filter.strip()) > 0:
         req_payload['filter'] = json.loads(filter.strip())
     print("Getting vulnerability impacts for asset [%s]" % (assetid))
@@ -325,3 +358,7 @@ def process_installation_created_request(event_data):
 
 def process_installation_deleted_request(event_data):
     launch_request_handler_process('installation_deleted_request_handler', event_data)
+
+def process_installation_unsuspend_request(event_data):
+    launch_request_handler_process('installation_unsuspend_request_handler', event_data)
+

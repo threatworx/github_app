@@ -9,7 +9,7 @@ from multiprocessing import Pool
 import utils
 
 def usage():
-    print("Usage is repos_added_request_handler [-f <path_to_event_data_json_file>]")
+    print("Usage is installation_unsuspend_request_handler [-f <path_to_event_data_json_file>]")
 
 if __name__ == '__main__':
 
@@ -42,12 +42,6 @@ if __name__ == '__main__':
     with open(json_file_name, 'r') as fd:
         event_data = json.load(fd)
 
-    if event_data['installation']['suspended_at'] is not None:
-        # GitHub App is suspended, so skip further processing
-        print("GitHub App is suspended...processing skipped")
-        os.remove(json_file_name)
-        sys.exit(0)
-
     config = utils.get_config()
     max_concurrency = config['github_app'].get('discovery_concurrency')
     if max_concurrency is None:
@@ -57,15 +51,19 @@ if __name__ == '__main__':
 
     installation_id = event_data["installation"]["id"]
 
+    # get the installation access token for our GitHub App
+    installation_access_token = utils.get_installation_access_token(installation_id)
+
+    # get the list of repos added to be processed
+    temp_repos = utils.get_installation_repositories(installation_access_token['token'])
+
     repos = []
-    # compile the list of repos added to be processed
-    for repo in event_data["repositories_added"]:
-        repos.append((repo["full_name"], installation_id))
+    for repo in temp_repos:
+        repos.append((repo, installation_id))
 
     # discover the repos added as assets in TW
     with Pool(processes=max_concurrency) as pool:
         pool.map(utils.discover_repo_wrapper, repos)
-
 
     # Delete the event_data json file
     os.remove(json_file_name)
