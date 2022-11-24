@@ -2,7 +2,7 @@
 ThreatWorx GitHub App
 =====================
 
-GitHub App from ThreatWorx which supports updating Pull Requests with information about vulnerabilities introduced in the Pull Request.
+GitHub App from ThreatWorx which supports automatic discovery and refresh of your GitHub repositories as assets in ThreatWorx. This provides complete view of vulnerabilities in these repositories. Also, there is support for Pull Request workflow which automatically updates Pull Requests with information about vulnerabilities introduced in the Pull Request. This provides engineering teams with information about new vulnerability creep.
 
 Steps to run the GitHub App 
 ===========================
@@ -22,7 +22,7 @@ Steps to run the GitHub App
    
 6. Create GitHub App in your GitHub Organization by accessing HTTP(S) URL. This will something like:
 
-   https://HOST_IP:PORT_NO/create_github_app
+   https://HOST:PORT/create_github_app
    
 7. Install the GitHub App for your repositories
 
