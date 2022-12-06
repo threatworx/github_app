@@ -124,7 +124,7 @@ def scan_diff(asset_id, diff_json_file):
     instance = config['threatworx']['instance']
     dev_null_device = open(os.devnull, "w")
 
-    twigs_cmd = "twigs -v --handle '%s' --token '%s' --instance '%s' --apply_policy SYNC_SCAN --run_id github_app sbom --input '%s' --standard threatworx --format json" % (handle, token, instance, diff_json_file)
+    twigs_cmd = "twigs -v --handle '%s' --token '%s' --instance '%s' --create_empty_asset --apply_policy SYNC_SCAN --run_id github_app sbom --input '%s' --standard threatworx --format json" % (handle, token, instance, diff_json_file)
     print("Starting scan for diff asset [%s]" % (asset_id))
 
     try:
@@ -164,10 +164,10 @@ def discover_repo(gh_app_access_token, repo_url, branch, asset_id, no_scan=False
     dev_null_device = open(os.devnull, "w")
 
     if no_scan:
-        twigs_cmd = "twigs -v --handle '%s' --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, outfile, updated_repo_url, asset_id, asset_id)
+        twigs_cmd = "twigs -v --handle '%s' --create_empty_asset --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, outfile, updated_repo_url, asset_id, asset_id)
         print("Starting asset discovery for repo [%s] and branch [%s]" % (repo_url, branch))
     else:
-        twigs_cmd = "twigs -v --handle '%s' --token '%s' --instance '%s' --apply_policy SYNC_SCAN --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, token, instance, updated_repo_url, asset_id, asset_id)
+        twigs_cmd = "twigs -v --handle '%s' --token '%s' --instance '%s' --create_empty_asset --apply_policy SYNC_SCAN --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, token, instance, updated_repo_url, asset_id, asset_id)
         print("Starting asset discovery & scan for repo [%s] and branch [%s]" % (repo_url, branch))
     if branch is not None:
         twigs_cmd = twigs_cmd + " --branch '%s'" % branch
@@ -301,19 +301,19 @@ def compose_pr_comment(impacts):
     if len(diff_vulns) == 0:
         return "No new vulnerabilities introduced in this pull request"
     else:
+        config = get_config()
+        instance = config['threatworx']['instance']
         prc = "Below is the list of new vulnerabilities introduced in this pull request:\n"
         #prc = prc + "\n|Field|Value|\n|:---|:---|\n"
         for new_vuln in diff_vulns:
             prc = prc + "\n|   |   |\n|:---|:---|\n"
-            prc = prc + "|Vulnerability ID|" + new_vuln["vuln_id"] + "|\n"
+            vuln_url = "https://%s/i3/#/threat/%s" % (instance, new_vuln["vuln_id"])
+            prc = prc + "|Vulnerability ID|" + "[" + new_vuln["vuln_id"] + "](" + vuln_url + ")|\n"
             prc = prc + "|CVSS Score|" + new_vuln["cvss_score"] + "|\n"
-            if new_vuln["vuln_id"].startswith('CVE-'):
-                vuln_url = "https://nvd.nist.gov/vuln/detail/" + new_vuln["vuln_id"]
-                prc = prc + "|Reference|" + "[" + vuln_url + "](" + vuln_url + ")" + "|\n"
-            else:
-                prc = prc + "|Reference|" + new_vuln["vuln_url"] + "|\n"
+            prc = prc + "|Reference|" + new_vuln["vuln_url"] + "|\n"
             prc = prc + "|Affected Dependency|" + new_vuln["affected_product"] + "|\n"
             prc = prc + "|Dependency found in file|" + new_vuln["dependency_file"] + "|\n"
+            prc = prc + "|Recommendation|" + new_vuln["recommendation"] + "|\n"
         return prc
 
 def delete_asset(asset_id):
