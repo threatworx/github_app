@@ -163,7 +163,6 @@ diff_file_name = utils.create_diff_json(basefile.name, headfile.name)
 if diff_file_name == None:
     print("No diff to proess")
     os.remove(json_file_name)
-    os.remove(diff_file_name)
     pr_comment = "No relevant changes found in this Pull Request for vulnerability assessment"
     add_pr_comment(comments_url, installation_access_token, pr_comment)
     sys.exit(1)
