@@ -12,4 +12,4 @@ COPY github_app /usr/share/github_app
 COPY twigs-1.1.25-py2.py3-none-any.whl /tmp
 RUN apt-get install libssl-dev
 RUN /bin/bash /tmp/build_docker.sh
-ENTRYPOINT ["/usr/local/bin/uwsgi", "--ini", "/opt/tw_github_app/config/uwsgi.ini"]
+ENTRYPOINT ["/usr/local/bin/update-twigs-run-uwsgi.sh"]
