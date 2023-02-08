@@ -161,6 +161,8 @@ def discover_repo(gh_app_access_token, repo_url, branch, asset_id, no_scan=False
     handle = config['threatworx']['handle']
     token = config['threatworx']['token']
     instance = config['threatworx']['instance']
+    iac_checks_enabled = config['github_app'].getboolean('iac_checks_enabled')
+    code_sharing = config['github_app'].getboolean('code_sharing')
     dev_null_device = open(os.devnull, "w")
 
     if no_scan:
@@ -172,17 +174,43 @@ def discover_repo(gh_app_access_token, repo_url, branch, asset_id, no_scan=False
     if branch is not None:
         twigs_cmd = twigs_cmd + " --branch '%s'" % branch
 
+    # Run base asset discovery
     try:
         #print(twigs_cmd)
         #out = subprocess.check_output([twigs_cmd], shell=True)
         out = subprocess.check_output([twigs_cmd], stderr=dev_null_device, shell=True)
-        print("Asset discovery & scan completed")
+        print("Base asset discovery completed")
         #print(out)
-        return True
     except subprocess.CalledProcessError as e:
         print("Error running twigs discovery")
         print(e)
         return False
+
+    # Perform IaC checks if enabled
+    if iac_checks_enabled:
+        if no_scan:
+            twigs_cmd = "twigs -v --handle '%s' --create_empty_asset --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --iac_checks" % (handle, outfile, updated_repo_url, asset_id, asset_id)
+            print("Running IaC checks for repo [%s] and branch [%s]" % (repo_url, branch))
+        else:
+            twigs_cmd = "twigs -v --handle '%s' --token '%s' --instance '%s' --create_empty_asset --no_scan --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --iac_checks" % (handle, token, instance, updated_repo_url, asset_id, asset_id)
+            print("Running IaC checks for repo [%s] and branch [%s]" % (repo_url, branch))
+        if branch is not None:
+            twigs_cmd = twigs_cmd + " --branch '%s'" % branch
+        if code_sharing == False:
+            twigs_cmd = twigs_cmd + " --no_code"
+        try:
+            #print(twigs_cmd)
+            #out = subprocess.check_output([twigs_cmd], shell=True)
+            out = subprocess.check_output([twigs_cmd], stderr=dev_null_device, shell=True)
+            print("IaC checks completed")
+            #print(out)
+            return True
+        except subprocess.CalledProcessError as e:
+            print("Error running twigs IaC checks")
+            print(e)
+            return False
+    else:
+        return True
 
 def set_requests_verify(verify):
     global GoDaddyCABundle
