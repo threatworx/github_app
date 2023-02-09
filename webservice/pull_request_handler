@@ -70,6 +70,35 @@ def add_pr_comment(comments_url, installation_access_token, pr_comment):
         print(response.status_code)
         print(response.content)
 
+def create_iac_summary(iac_basefilename, iac_headfilename):
+    bf = open(iac_basefilename, 'r')
+    bf_json = json.loads(bf.read())
+    hf = open(iac_headfilename, 'r')
+    hf_json = json.loads(hf.read())
+    bf.close()
+    hf.close()
+
+    base_iac_issues = set()
+    head_iac_issues = set()
+    if 'sast' in bf_json['assets'][0]:
+        for issue in bf_json['assets'][0]['sast']:
+            if issue['type'] != 'IaC':
+                continue
+            base_iac_issues.add((issue['filename'], issue['issue_id'], issue['lineno_start'], issue['lineno_end']))
+    if 'sast' in hf_json['assets'][0]:
+        for issue in hf_json['assets'][0]['sast']:
+            if issue['type'] != 'IaC':
+                continue
+            head_iac_issues.add((issue['filename'], issue['issue_id'], issue['lineno_start'], issue['lineno_end']))
+    new_iac_issues = head_iac_issues - base_iac_issues
+    #print(new_iac_issues)
+    if len(new_iac_issues) > 0:
+        iac_summary = "%s new IaC issues introduced in this Pull Request" % str(len(new_iac_issues))
+    else:
+        iac_summary = "No new IaC issues introduced in this Pull Request"
+    #print(iac_summary)
+    return iac_summary
+
 os.nice(19)
 pid = os.getpid()
 
@@ -99,7 +128,8 @@ if json_file_name is None:
 event_data = None
 with open(json_file_name, 'r') as fd:
     event_data = json.load(fd)
-
+# Delete the event_data json file
+os.remove(json_file_name)
 config = utils.get_config()
 installation_id = event_data["installation"]["id"]
 
@@ -125,7 +155,6 @@ comments_url = event_data['pull_request']['comments_url']
 #    pr_comment = "No relevant changes found in this Pull Request for vulnerability assessment"
 #    add_pr_comment(comments_url, installation_access_token, pr_comment)
 #    # Delete the event_data json file
-#    os.remove(json_file_name)
 #    sys.exit(0)
 
 pr_comment = "ThreatWorx vulnerability assessment initiated"
@@ -134,11 +163,10 @@ add_pr_comment(comments_url, installation_access_token, pr_comment)
 # get temp file for base asset inventory
 basefile = tempfile.NamedTemporaryFile()
 
-# Discover base asset locally without scan
-ret_val = utils.discover_repo(installation_access_token['token'], base_repo_url, base_branch, base_asset_id, True, basefile.name)
+# Discover base asset locally without scan and no IaC checks
+ret_val = utils.discover_repo(installation_access_token['token'], base_repo_url, base_branch, base_asset_id, True, True, basefile.name, False)
 if ret_val == False:
     print("Error while discovering asset for base branch [%s]" % base_branch)
-    os.remove(json_file_name)
     pr_comment = "ThreatWorx vulnerability assessment encountered an error"
     add_pr_comment(comments_url, installation_access_token, pr_comment)
     sys.exit(1)
@@ -149,56 +177,89 @@ installation_access_token = utils.get_installation_access_token(installation_id)
 # get temp file for head asset inventory
 headfile = tempfile.NamedTemporaryFile()
 
-# Discover head asset locally without scan
-ret_val = utils.discover_repo(installation_access_token['token'], head_repo_url, head_branch, head_asset_id, True, headfile.name)
+# Discover head asset locally without scan and no IaC checks
+ret_val = utils.discover_repo(installation_access_token['token'], head_repo_url, head_branch, head_asset_id, True, True, headfile.name, False)
 if ret_val == False:
     print("Error while discovering asset for head branch [%s]" % head_branch)
-    os.remove(json_file_name)
     pr_comment = "ThreatWorx vulnerability assessment encountered an error"
     add_pr_comment(comments_url, installation_access_token, pr_comment)
     sys.exit(1)
 
 # create diff json for base and head
 diff_file_name = utils.create_diff_json(basefile.name, headfile.name)
-if diff_file_name == None:
+if diff_file_name is None:
     print("No diff to proess")
-    os.remove(json_file_name)
     pr_comment = "No relevant changes found in this Pull Request for vulnerability assessment"
     add_pr_comment(comments_url, installation_access_token, pr_comment)
-    sys.exit(1)
+else:
+    # upload diff asset and run a scan
+    ret_val = utils.scan_diff(head_asset_id, diff_file_name)
+    if ret_val == False:
+        print("Error scanning diff asset")
+        os.remove(diff_file_name)
+        utils.delete_asset(head_asset_id)
+        pr_comment = "ThreatWorx vulnerability assessment encountered an error"
+        add_pr_comment(comments_url, installation_access_token, pr_comment)
+        sys.exit(1)
 
-# upload diff asset and run a scan
-ret_val = utils.scan_diff(head_asset_id, diff_file_name)
-if ret_val == False:
-    print("Error scanning diff asset")
-    os.remove(json_file_name)
-    os.remove(diff_file_name)
-    utils.delete_asset(head_asset_id)
-    pr_comment = "ThreatWorx vulnerability assessment encountered an error"
+    # Call TW API to get vulnerability impact for diff asset
+    impacts = utils.get_impacts(head_asset_id)
+    if impacts is None:
+        print("Error getting vuln impacts")
+        os.remove(diff_file_name)
+        utils.delete_asset(head_asset_id)
+        pr_comment = "ThreatWorx vulnerability assessment encountered an error"
+        add_pr_comment(comments_url, installation_access_token, pr_comment)
+        sys.exit(1)
+
+    # get the installation access token for our GitHub App
+    installation_access_token = utils.get_installation_access_token(installation_id)
+
+    # Update PR request with information
+    pr_comment = utils.compose_pr_comment(impacts)
     add_pr_comment(comments_url, installation_access_token, pr_comment)
-    sys.exit(1)
 
-# Call TW API to get vulnerability impact for diff asset 
-impacts = utils.get_impacts(head_asset_id)
-if impacts is None:
-    print("Error getting vuln impacts")
-    os.remove(json_file_name)
-    os.remove(diff_file_name)
+    # Delete temp asset
     utils.delete_asset(head_asset_id)
-    pr_comment = "ThreatWorx vulnerability assessment encountered an error"
+    os.remove(diff_file_name)
+
+# Run IaC checks if enabled
+iac_checks_enabled = config['github_app'].getboolean('iac_checks_enabled')
+if iac_checks_enabled:
+    # get the installation access token for our GitHub App
+    installation_access_token = utils.get_installation_access_token(installation_id)
+
+    pr_comment = "ThreatWorx IaC checks initiated"
     add_pr_comment(comments_url, installation_access_token, pr_comment)
-    sys.exit(1)
 
-# get the installation access token for our GitHub App
-installation_access_token = utils.get_installation_access_token(installation_id)
+    # get temp file for base asset inventory
+    iac_basefile = tempfile.NamedTemporaryFile()
 
-# Update PR request with information
-pr_comment = utils.compose_pr_comment(impacts)
-add_pr_comment(comments_url, installation_access_token, pr_comment)
+    # Run IaC checks for base branch
+    ret_val = utils.discover_repo(installation_access_token['token'], base_repo_url, base_branch, base_asset_id, False, True, iac_basefile.name)
+    if ret_val == False:
+        print("Error running IaC checks for base branch [%s]" % base_branch)
+        pr_comment = "ThreatWorx IaC checks encountered an error"
+        add_pr_comment(comments_url, installation_access_token, pr_comment)
+        sys.exit(1)
 
-# Delete temp asset
-utils.delete_asset(head_asset_id)
+    # get the installation access token for our GitHub App
+    installation_access_token = utils.get_installation_access_token(installation_id)
 
-# Delete the event_data json file
-os.remove(json_file_name)
-os.remove(diff_file_name)
+    # get temp file for head asset inventory
+    iac_headfile = tempfile.NamedTemporaryFile()
+
+    # Run IaC checks for head branch
+    ret_val = utils.discover_repo(installation_access_token['token'], head_repo_url, head_branch, head_asset_id, False, True, iac_headfile.name)
+    if ret_val == False:
+        print("Error runnning IaC checks for head branch [%s]" % head_branch)
+        pr_comment = "ThreatWorx IaC checks encountered an error"
+        add_pr_comment(comments_url, installation_access_token, pr_comment)
+        sys.exit(1)
+
+    iac_summary = create_iac_summary(iac_basefile.name, iac_headfile.name)
+
+    # get the installation access token for our GitHub App
+    installation_access_token = utils.get_installation_access_token(installation_id)
+    add_pr_comment(comments_url, installation_access_token, iac_summary)
+

@@ -23,8 +23,8 @@ def create_diff_json(basefilename, headfilename):
     bf.close()
     hf.close()
 
-    bf_set = set(bf_json[0]['products'])
-    hf_set = set(hf_json[0]['products'])
+    bf_set = set(bf_json['assets'][0]['products'])
+    hf_set = set(hf_json['assets'][0]['products'])
 
     diff_set = hf_set - bf_set
 
@@ -32,7 +32,7 @@ def create_diff_json(basefilename, headfilename):
     if len(diff_products) == 0:
         return None
 
-    hf_json[0]['products'] = diff_products
+    hf_json['assets'][0]['products'] = diff_products
     diff_json_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
     diff_json_file.write(json.dumps(hf_json, ensure_ascii=False, indent=4))
     diff_json_file.close()
@@ -152,7 +152,7 @@ def discover_repo_wrapper(data):
     if ret_val == False:
         print("Error while discovering asset for default branch")
 
-def discover_repo(gh_app_access_token, repo_url, branch, asset_id, no_scan=False, outfile=None):
+def discover_repo(gh_app_access_token, repo_url, branch, asset_id, base_discovery=True, no_scan=False, outfile=None, run_iac_checks=True):
 
     # include access_token in git repo url to clone the repo for discovery
     updated_repo_url = "https://x-access-token:" + gh_app_access_token + '@' + repo_url.split('//')[1]
@@ -165,29 +165,30 @@ def discover_repo(gh_app_access_token, repo_url, branch, asset_id, no_scan=False
     code_sharing = config['github_app'].getboolean('code_sharing')
     dev_null_device = open(os.devnull, "w")
 
-    if no_scan:
-        twigs_cmd = "twigs -v --handle '%s' --create_empty_asset --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, outfile, updated_repo_url, asset_id, asset_id)
-        print("Starting asset discovery for repo [%s] and branch [%s]" % (repo_url, branch))
-    else:
-        twigs_cmd = "twigs -v --handle '%s' --token '%s' --instance '%s' --create_empty_asset --apply_policy SYNC_SCAN --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, token, instance, updated_repo_url, asset_id, asset_id)
-        print("Starting asset discovery & scan for repo [%s] and branch [%s]" % (repo_url, branch))
-    if branch is not None:
-        twigs_cmd = twigs_cmd + " --branch '%s'" % branch
+    if base_discovery:
+        if no_scan:
+            twigs_cmd = "twigs -v --handle '%s' --create_empty_asset --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, outfile, updated_repo_url, asset_id, asset_id)
+            print("Starting asset discovery for repo [%s] and branch [%s]" % (repo_url, branch))
+        else:
+            twigs_cmd = "twigs -v --handle '%s' --token '%s' --instance '%s' --create_empty_asset --apply_policy SYNC_SCAN --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, token, instance, updated_repo_url, asset_id, asset_id)
+            print("Starting asset discovery & scan for repo [%s] and branch [%s]" % (repo_url, branch))
+        if branch is not None:
+            twigs_cmd = twigs_cmd + " --branch '%s'" % branch
 
-    # Run base asset discovery
-    try:
-        #print(twigs_cmd)
-        #out = subprocess.check_output([twigs_cmd], shell=True)
-        out = subprocess.check_output([twigs_cmd], stderr=dev_null_device, shell=True)
-        print("Base asset discovery completed")
-        #print(out)
-    except subprocess.CalledProcessError as e:
-        print("Error running twigs discovery")
-        print(e)
-        return False
+        # Run base asset discovery
+        try:
+            #print(twigs_cmd)
+            #out = subprocess.check_output([twigs_cmd], shell=True)
+            out = subprocess.check_output([twigs_cmd], stderr=dev_null_device, shell=True)
+            print("Base asset discovery completed")
+            #print(out)
+        except subprocess.CalledProcessError as e:
+            print("Error running twigs discovery")
+            print(e)
+            return False
 
-    # Perform IaC checks if enabled
-    if iac_checks_enabled:
+    # Perform IaC checks if enabled and specified to be run
+    if iac_checks_enabled and run_iac_checks:
         if no_scan:
             twigs_cmd = "twigs -v --handle '%s' --create_empty_asset --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --iac_checks" % (handle, outfile, updated_repo_url, asset_id, asset_id)
             print("Running IaC checks for repo [%s] and branch [%s]" % (repo_url, branch))
