@@ -164,13 +164,14 @@ def discover_repo(gh_app_access_token, repo_url, branch, asset_id, base_discover
     iac_checks_enabled = config['github_app'].getboolean('iac_checks_enabled')
     code_sharing = config['github_app'].getboolean('code_sharing')
     dev_null_device = open(os.devnull, "w")
+    org = repo_url.split('//')[1].split('/')[1]
 
     if base_discovery:
         if no_scan:
             twigs_cmd = "twigs -v --handle '%s' --create_empty_asset --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, outfile, updated_repo_url, asset_id, asset_id)
             print("Starting asset discovery for repo [%s] and branch [%s]" % (repo_url, branch))
         else:
-            twigs_cmd = "twigs -v --handle '%s' --token '%s' --instance '%s' --create_empty_asset --apply_policy SYNC_SCAN --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, token, instance, updated_repo_url, asset_id, asset_id)
+            twigs_cmd = "twigs -v --handle '%s' --token '%s' --instance '%s' --tag '%s' --create_empty_asset --apply_policy SYNC_SCAN --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, token, instance, org, updated_repo_url, asset_id, asset_id)
             print("Starting asset discovery & scan for repo [%s] and branch [%s]" % (repo_url, branch))
         if branch is not None:
             twigs_cmd = twigs_cmd + " --branch '%s'" % branch
@@ -193,7 +194,7 @@ def discover_repo(gh_app_access_token, repo_url, branch, asset_id, base_discover
             twigs_cmd = "twigs -v --handle '%s' --create_empty_asset --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --iac_checks" % (handle, outfile, updated_repo_url, asset_id, asset_id)
             print("Running IaC checks for repo [%s] and branch [%s]" % (repo_url, branch))
         else:
-            twigs_cmd = "twigs -v --handle '%s' --token '%s' --instance '%s' --create_empty_asset --no_scan --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --iac_checks" % (handle, token, instance, updated_repo_url, asset_id, asset_id)
+            twigs_cmd = "twigs -v --handle '%s' --token '%s' --instance '%s' --tag '%s' --create_empty_asset --no_scan --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --iac_checks" % (handle, token, instance, org, updated_repo_url, asset_id, asset_id)
             print("Running IaC checks for repo [%s] and branch [%s]" % (repo_url, branch))
         if branch is not None:
             twigs_cmd = twigs_cmd + " --branch '%s'" % branch
