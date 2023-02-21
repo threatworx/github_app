@@ -79,7 +79,7 @@ def get_installation_access_token(installation_id):
     jwt_token = apps.get_jwt(app_id=app_id, private_key=private_key)
     #print(jwt_token)
     headers = { "Authorization": "Bearer %s" % jwt_token, "Accept": "application/vnd.github+json" }
-    url = "https://api.github.com/app/installations/%s/access_tokens" % str(installation_id)
+    url = "%s/app/installations/%s/access_tokens" % (config["github_app"]["github_api_url"], str(installation_id))
     response = requests_post(url, headers, {}, True)
     #print(response.status_code)
     #print(response.content)
@@ -89,7 +89,8 @@ def get_installation_access_token(installation_id):
         return None
 
 def get_repo_metadata(gh_app_access_token, repo_full_name):
-    repo_api_url = "https://api.github.com/repos/%s" % repo_full_name
+    config = get_config()
+    repo_api_url = "%s/repos/%s" % (config["github_app"]["github_api_url"], repo_full_name)
     headers = { "Accept": "application/vnd.github+json", "Authorization" : "Bearer "+gh_app_access_token }
     response = requests_get(repo_api_url, headers, True)
     if response is not None and response.status_code == 200:
@@ -101,12 +102,13 @@ def get_repo_metadata(gh_app_access_token, repo_full_name):
         return None
 
 def get_installation_repositories(gh_app_access_token):
-    repo_api_url = "https://api.github.com/installation/repositories?per_page=100&page=%s"
+    config = utils.get_config()
+    repo_api_url = "%s/installation/repositories?per_page=100&page=%s"
     headers = { "Accept": "application/vnd.github+json", "Authorization" : "Bearer "+gh_app_access_token }
     page_no = 1
     repos_list = []
     while True:
-        temp_repo_api_url = repo_api_url % page_no
+        temp_repo_api_url = repo_api_url % (config["github_app"]["github_api_url"], page_no)
         response = requests_get(temp_repo_api_url, headers, True)
         if response is not None and response.status_code == 200:
             repos = response.json()['repositories']
@@ -143,7 +145,7 @@ def discover_repo_wrapper(data):
     installation_access_token = get_installation_access_token(installation_id)
     #print(installation_access_token)
 
-    repo_url = "https://github.com/%s.git" % repo_full_name
+    repo_url = "https://%s/%s.git" % (config["github_app"]["github_host"], repo_full_name)
     asset_id = repo_full_name.replace('/','_') # don't include default branch
 
     # Discover and scan asset

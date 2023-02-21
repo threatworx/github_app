@@ -14,7 +14,7 @@ Steps to run the GitHub App
 
 3. Make a copy of uwsgi.ini [https://github.com/threatworx/github_app/blob/master/config/uwsgi.ini] file in your config folder. Update the web server port number and specify certificate details in uwsgi.ini file
 
-4. Make a copy of config.ini [https://github.com/threatworx/github_app/blob/master/config/config.ini] file in your config folder. Update web server port, tweak app configuration and update your TW user details in config.ini file.
+4. Make a copy of config.ini [https://github.com/threatworx/github_app/blob/master/config/config.ini] file in your config folder. Update your TW user details in config.ini file and tweak app configuration as required.
 
 5. Run the docker container using the command below (note please update port number and path to config folder):
 

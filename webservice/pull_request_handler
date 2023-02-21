@@ -13,7 +13,8 @@ def usage():
 
 def get_changed_files_count(installation_access_token, pr_no):
     print("In get_changed_files_count")
-    pr_url = "https://api.github.com/repos/%s/pulls/%s" % (base_repo_full_name, pr_no)
+    config = utils.get_config()
+    pr_url = "%s/repos/%s/pulls/%s" % (config["github_app"]["github_api_url"], base_repo_full_name, pr_no)
     headers = { "Accept": "application/vnd.github+json", "Authorization" : "Bearer "+installation_access_token['token'] }
     response = utils.requests_get(pr_url, headers, True)
     if response.status_code != 200:
@@ -27,7 +28,8 @@ def get_changed_files_count(installation_access_token, pr_no):
 
 def check_relevant_files(installation_access_token, pr_no):
     print("In check_relevant_files")
-    pr_files_url = "https://api.github.com/repos/%s/pulls/%s/files?per_page=100&page=" % (base_repo_full_name, pr_no)
+    config = utils.get_config()
+    pr_files_url = "%s/repos/%s/pulls/%s/files?per_page=100&page=" % (config["github_app"]["github_api_url"], base_repo_full_name, pr_no)
     headers = { "Accept": "application/vnd.github+json", "Authorization" : "Bearer "+installation_access_token['token'] }
     relevant_files = ["go.mod", "Cargo.toml", "pom.xml", "dependencies.gradle", "package-lock.json", "package.json", ".props", ".csproj", "packages.config", "yarn.lock", "gemfile.lock", "Gemfile.lock", "requirements.txt", ".jar", ".dll"]
     page_no = 1

@@ -23,6 +23,7 @@ def handle_get():
     with open(file_path, "r") as fd:
         fc = fd.read()
     fc = fc.replace("TW_STATE", utils.get_gh_app_manifest_state())
+    fc = fc.replace("GH_HOST", config["github_app"]["github_host"])
     return fc, 200, {'Content-Type': 'text/html'}
 
 @app.route("/redirect")
@@ -39,7 +40,7 @@ def redirect_handler():
         if state != utils.get_gh_app_manifest_state():
             print("Error security state mismatch, possible CSRF attack")
             return "Error security state mismatch, possible CSRF attack", 200, {'Content-Type': 'text/plain'}
-        api_url = "https://api.github.com/app-manifests/%s/conversions" % code
+        api_url = "%s/app-manifests/%s/conversions" % (config["github_app"]["github_api_url"], code)
         response = utils.requests_post(api_url, { "Accept": "application/vnd.github+json" }, { }, True)
         response = response.json()
         #print(response)
