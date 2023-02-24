@@ -77,12 +77,12 @@ def get_installation_access_token(installation_id):
     app_id=config['github_app']['app_id']
     private_key=config['github_app']['private_key']
     jwt_token = apps.get_jwt(app_id=app_id, private_key=private_key)
-    #print(jwt_token)
+    print(jwt_token)
     headers = { "Authorization": "Bearer %s" % jwt_token, "Accept": "application/vnd.github+json" }
     url = "%s/app/installations/%s/access_tokens" % (config["github_app"]["github_api_url"], str(installation_id))
     response = requests_post(url, headers, {}, True)
-    #print(response.status_code)
-    #print(response.content)
+    print(response.status_code)
+    print(response.content)
     if response.status_code == 201:
         return response.json()
     else:
