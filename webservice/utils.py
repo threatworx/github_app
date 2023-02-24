@@ -125,8 +125,9 @@ def scan_diff(asset_id, diff_json_file):
     token = config['threatworx']['token']
     instance = config['threatworx']['instance']
     dev_null_device = open(os.devnull, "w")
+    insecure = config['threatworx'].get
 
-    twigs_cmd = "twigs -v --handle '%s' --token '%s' --instance '%s' --create_empty_asset --apply_policy SYNC_SCAN --run_id github_app sbom --input '%s' --standard threatworx --format json" % (handle, token, instance, diff_json_file)
+    twigs_cmd = "twigs -v --insecure --handle '%s' --token '%s' --instance '%s' --create_empty_asset --apply_policy SYNC_SCAN --run_id github_app sbom --input '%s' --standard threatworx --format json" % (handle, token, instance, diff_json_file)
     print("Starting scan for diff asset [%s]" % (asset_id))
 
     try:
@@ -173,7 +174,7 @@ def discover_repo(gh_app_access_token, repo_url, branch, asset_id, base_discover
             twigs_cmd = "twigs -v --handle '%s' --create_empty_asset --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, outfile, updated_repo_url, asset_id, asset_id)
             print("Starting asset discovery for repo [%s] and branch [%s]" % (repo_url, branch))
         else:
-            twigs_cmd = "twigs -v --handle '%s' --token '%s' --instance '%s' --tag '%s' --create_empty_asset --apply_policy SYNC_SCAN --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, token, instance, org, updated_repo_url, asset_id, asset_id)
+            twigs_cmd = "twigs -v --insecure --handle '%s' --token '%s' --instance '%s' --tag '%s' --create_empty_asset --apply_policy SYNC_SCAN --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s'" % (handle, token, instance, org, updated_repo_url, asset_id, asset_id)
             print("Starting asset discovery & scan for repo [%s] and branch [%s]" % (repo_url, branch))
         if branch is not None:
             twigs_cmd = twigs_cmd + " --branch '%s'" % branch
@@ -196,7 +197,7 @@ def discover_repo(gh_app_access_token, repo_url, branch, asset_id, base_discover
             twigs_cmd = "twigs -v --handle '%s' --create_empty_asset --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --iac_checks" % (handle, outfile, updated_repo_url, asset_id, asset_id)
             print("Running IaC checks for repo [%s] and branch [%s]" % (repo_url, branch))
         else:
-            twigs_cmd = "twigs -v --handle '%s' --token '%s' --instance '%s' --tag '%s' --create_empty_asset --no_scan --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --iac_checks" % (handle, token, instance, org, updated_repo_url, asset_id, asset_id)
+            twigs_cmd = "twigs -v --insecure --handle '%s' --token '%s' --instance '%s' --tag '%s' --create_empty_asset --no_scan --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --iac_checks" % (handle, token, instance, org, updated_repo_url, asset_id, asset_id)
             print("Running IaC checks for repo [%s] and branch [%s]" % (repo_url, branch))
         if branch is not None:
             twigs_cmd = twigs_cmd + " --branch '%s'" % branch
