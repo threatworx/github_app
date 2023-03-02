@@ -97,7 +97,7 @@ def create_iac_summary(iac_basefilename, iac_headfilename):
     if len(new_iac_issues) > 0:
         iac_summary = "%s new IaC issues introduced in this Pull Request\n\n" % str(len(new_iac_issues))
         for i in new_iac_issues:
-            iac_summary = iac_summary + 'Filename: '+i['filename']+' Lines: '+str(i['lineno_start'])+'-'+str(i['lineno_end']) + '\n'
+            iac_summary = iac_summary + 'Filename: '+i[0]+' Lines: '+str(i[2])+'-'+str(i[3]) + '\n'
     else:
         iac_summary = "No new IaC issues introduced in this Pull Request"
     #print(iac_summary)

@@ -239,7 +239,12 @@ def set_requests_verify(verify):
 
 def get_requests_verify():
     global GoDaddyCABundle
-    return GoDaddyCABundle
+    config = get_config()
+    ssl_verification = config['threatworx'].getboolean('ssl_verification', fallback=True)
+    if ssl_verification:
+        return GoDaddyCABundle
+    else:
+        return False
 
 def requests_get(url, headers, in_verify=None):
     in_verify = get_requests_verify() if in_verify is None else in_verify
