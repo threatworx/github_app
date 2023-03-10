@@ -17,7 +17,10 @@ def handle_get():
     config = utils.get_config()
     if config['github_app'].getboolean('setup_done'):
         print("Warning GitHub App is already setup")
-        return "GitHub App is already setup", 200, {'Content-Type': 'text/plain'}
+        file_path = os.path.dirname(os.path.realpath(__file__)) + "/../templates/setup_done.html"
+        with open(file_path, "r") as fd:
+            fc = fd.read()
+        return fc, 200, {'Content-Type': 'text/html'}
 
     file_path = os.path.dirname(os.path.realpath(__file__)) + "/../templates/github_app_config.html"
     with open(file_path, "r") as fd:
@@ -54,7 +57,10 @@ def redirect_handler():
         utils.write_config(config)
         config = utils.get_config(True)
         print("Updated GitHub App Configuration")
-        return "Your GitHub App is installed successfully", 200, {'Content-Type': 'text/plain'}
+        file_path = os.path.dirname(os.path.realpath(__file__)) + "/../templates/success.html"
+        with open(file_path, "r") as fd:
+            fc = fd.read()
+        return fc, 200, {'Content-Type': 'text/html'}
     except Exception as exc:
         traceback.print_exc(file=sys.stderr)
         return "Internal Server Error", 500, {'Content-Type': 'text/plain'}
