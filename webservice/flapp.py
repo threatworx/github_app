@@ -13,7 +13,7 @@ utils.set_requests_verify(os.path.dirname(os.path.realpath(__file__)) + os.sep +
 
 @app.route("/create_github_app")
 def handle_get():
-    print("In create_github_app handler")
+    print("Creating github app")
     config = utils.get_config()
     if config['github_app'].getboolean('setup_done'):
         print("Warning GitHub App is already setup")
@@ -29,11 +29,11 @@ def handle_get():
 @app.route("/redirect")
 def redirect_handler():
     try:
-        print("In redirect handler")
+        print("Handling github redirect")
         #print(request.values)
         config = utils.get_config()
         if config['github_app'].getboolean('setup_done'):
-            print("Error Ignoring additional redirect handler call as GitHub App is already setup")
+            print("Error ignoring additional redirect handler call as GitHub App is already setup")
             return "GitHub App is already setup", 200, {'Content-Type': 'text/plain'}
         code = request.values.get('code')
         state = request.values.get('state')
@@ -70,12 +70,12 @@ def webhook():
         event = sansio.Event.from_http(request.headers, request.data, secret=secret)
         #print("%s - %s" % (event.event, event.data["action"]))
         if event.event == "pull_request" and (event.data["action"] == "opened" or event.data["action"] == "reopened" or event.data["action"] == "synchronize") and pr_enabled:
-            print("In pull_request opened webhook")
+            print("Handling pull_request opened webhook")
             utils.process_pull_request(event.data)
         if event.event == "push" and not event.data["ref"].startswith("refs/tags/") and len(event.data["commits"]) > 0 and base_discovery_enabled:
                 utils.process_push_request(event.data)
         if event.event == "installation" and (event.data["action"] == "created" or event.data["action"] == "deleted" or event.data["action"] == "unsuspend") and base_discovery_enabled:
-            print("In installation webhook for [%s]" % event.data["action"])
+            print("Handling installation webhook for [%s]" % event.data["action"])
             if event.data["action"] == "created":
                 utils.process_installation_created_request(event.data)
             elif event.data["action"] == "deleted":
@@ -83,7 +83,7 @@ def webhook():
             elif event.data["action"] == "unsuspend":
                 utils.process_installation_unsuspend_request(event.data)
         if event.event == "installation_repositories" and (event.data["action"] == "added" or event.data["action"] == "removed") and base_discovery_enabled:
-            print("In installation_webhook for repositories [%s]" % event.data["action"])
+            print("Handling installation_webhook for repositories [%s]" % event.data["action"])
             if event.data["action"] == "added":
                 utils.process_repos_added_request(event.data)
             elif event.data["action"] == "removed":

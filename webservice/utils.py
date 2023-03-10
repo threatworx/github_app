@@ -72,7 +72,6 @@ def get_gh_app_manifest_state():
     return gh_app_manifest_state
 
 def get_installation_access_token(installation_id):
-    print("In get_installation_access_token")
     config = get_config()
     app_id=config['github_app']['app_id']
     private_key=config['github_app']['private_key']

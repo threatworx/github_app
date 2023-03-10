@@ -63,7 +63,7 @@ if base_branch != default_branch:
 base_repo_url = event_data['repository']['clone_url']
 base_asset_id = repo_full_name.replace('/','_') # don't include default branch
 
-print("In push webhook for repo [%s]" % repo_full_name)
+print("Handling push webhook for repo [%s]" % repo_full_name)
 
 # Discover and scan asset
 ret_val = utils.discover_repo(installation_access_token['token'], base_repo_url, None, base_asset_id)
