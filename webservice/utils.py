@@ -104,7 +104,7 @@ def get_repo_metadata(gh_app_access_token, repo_full_name):
         return None
 
 def get_installation_repositories(gh_app_access_token):
-    config = utils.get_config()
+    config = get_config()
     repo_api_url = "%s/installation/repositories?per_page=100&page=%s"
     headers = { "Accept": "application/vnd.github+json", "Authorization" : "Bearer "+gh_app_access_token }
     page_no = 1
