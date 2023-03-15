@@ -1,0 +1,16 @@
+version: "2.0"
+services:
+    github_app:
+        image: threatworx/github_app_server:latest
+        container_name: threatworx_github_app
+        ports:
+            - 443:443
+        volumes:
+            - /opt/tw_github_app:/opt/tw_github_app
+    watchtower:
+        image: containrrr/watchtower
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        command: --interval 86400 --cleanup --remove-volumes --debug threatworx_github_app
+        depends_on: 
+            - github_app

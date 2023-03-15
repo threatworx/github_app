@@ -3,13 +3,18 @@ import sys
 import traceback
 
 from flask import Flask
-from flask import request
+from flask import request, redirect
 from gidgethub import sansio
 
 from . import utils
 
 app = Flask(__name__)
 utils.set_requests_verify(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'gd-ca-bundle.crt')
+
+@app.route('/')
+def index_page():
+    rurl = request.host_url+'create_github_app'
+    return redirect(rurl, code=302)
 
 @app.route("/create_github_app")
 def handle_get():
