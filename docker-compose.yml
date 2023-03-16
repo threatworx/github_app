@@ -6,11 +6,11 @@ services:
         ports:
             - 443:443
         volumes:
-            - /opt/tw_github_app:/opt/tw_github_app
+            - ./config:/opt/tw_github_app/config
     watchtower:
         image: containrrr/watchtower
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
-        command: --interval 86400 --cleanup --remove-volumes --debug threatworx_github_app
+        command: --interval 30 --cleanup --remove-volumes --debug threatworx_github_app
         depends_on: 
             - github_app
