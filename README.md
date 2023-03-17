@@ -42,22 +42,18 @@ cd github_app
 > https = =0,/opt/tw_github_app/config/``my.cert``,/opt/tw_github_app/config/``my.key``,...
 > ...
 
-- Edit the ``config.ini`` file in ``config`` directory to update your ThreatWorx instance, user and API key
+- Edit the ``config.ini`` file in ``config`` directory to update your ThreatWorx ``instance``, ``handle`` (user email) and ``token`` (API key)
 
-> Look for the threatwors section in config.ini
-> [threatworx]
-> handle=``YOUR_TW_HANDLE``
-> token=``YOUR_TW_API_KEY``
-> instance=``YOUR_TW_INSTANCE``
+> Look for the [threatworx] section in config.ini
 
 ```bash
 cd config
 vi config.ini
 ```
 
-> instance is your dedicated ThreatWorx instance hostname e.g. acme.threatworx.io
-> handle is your registered user email on the ThreatWorx instance e.g. bob@acme.com
-> token is your API token that you can generate or copy from the ThreatWorx instance console by navigating to ``Profile`` -> ``Key Management`` in the left menu
+> ``instance`` is your dedicated ThreatWorx instance hostname e.g. acme.threatworx.io
+> ``handle`` is your registered user email on the ThreatWorx instance e.g. bob@acme.com
+> ``token`` is your API key that you can generate or copy from the ThreatWorx instance console by navigating to ``Profile`` -> ``Key Management`` in the left menu
 
 - Modify any other features of the app service as required in the ``config.ini``
 
