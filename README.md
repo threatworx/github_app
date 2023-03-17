@@ -44,12 +44,16 @@ cd github_app
 
 - Edit the ``config.ini`` file in ``config`` directory to update your ThreatWorx instance, user and API key
 
+> [threatworx]
+> handle=``YOUR_TW_HANDLE``
+> token=``YOUR_TW_API_KEY``
+> instance=``YOUR_TW_INSTANCE``
+
 ```bash
-[threatworx]
-handle=YOUR_TW_HANDLE
-token=YOUR_TW_API_KEY
-instance=YOUR_TW_INSTANCE
+cd config
+vi config.ini
 ```
+
 > instance is your dedicated ThreatWorx instance hostname e.g. acme.threatworx.io
 > handle is your registered user email on the ThreatWorx instance e.g. bob@acme.com
 > token is your API token that you can generate or copy from the ThreatWorx instance console by navigating to ``Profile`` -> ``Key Management`` in the left menu
