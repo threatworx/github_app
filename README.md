@@ -44,6 +44,7 @@ cd github_app
 
 - Edit the ``config.ini`` file in ``config`` directory to update your ThreatWorx instance, user and API key
 
+> Look for the threatwors section in config.ini
 > [threatworx]
 > handle=``YOUR_TW_HANDLE``
 > token=``YOUR_TW_API_KEY``
@@ -73,5 +74,4 @@ docker-compose up -d
 - Point your browser to https://linux-docker-host/
 - Enter the name of your organization where you would like to deploy the App in GitHub and click ``Create``
 - Once the request is complete, deploy the App in the GitHub console for any organization of your choice just like any other app and add repositories to it
-
 
