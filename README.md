@@ -61,7 +61,7 @@ vi config.ini
 
 ```bash
 cd ..
-docker-compose up -d
+docker compose up -d
 ```
 
 ## Configure and install the App in GitHub
