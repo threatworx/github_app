@@ -1,4 +1,4 @@
-<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></meta><title>ThreatWorx GitHub App Configuration</title><style type="text/css" media="all">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></meta><title>ThreatWorx GitHub App Creation</title><style type="text/css" media="all">
 
                     html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, details, embed, figure, figcaption, footer, header, hgroup, menu, nav, output, ruby, section, summary, time, mark, audio, video {
 
@@ -302,65 +302,14 @@
 <table cellpadding="10" cellspacing="10">
 <tr>
 <td>
-Please enter your ThreatWorx User Handle
-</td>
-<td>
-<input type="text" placeholder="ThreatWorx User Handle"  name="tw_handle" id="tw_handle" required>
-</td>
-</tr>
-<tr>
-<td>
-Please enter your ThreatWorx User API Key
-</td>
-<td>
-<input type="password" placeholder="ThreatWorx User API Key"  name="tw_api_key" id="tw_api_key" required>
-</td>
-</tr>
-<tr>
-<td>
-Please enter your ThreatWorx Instance
-</td>
-<td>
-<input type="text" placeholder="ThreatWorx Instance FQDN"  name="tw_instance" id="tw_instance" required>
-</td>
-</tr>
-<tr>
-<td>
-Enable Infrastructure As Code (IaC) checks
-</td>
-<td>
-<input type="radio" name="iac_enabled" id="iac_enabled_yes" value="yes">
-<label for="Yes">Yes</label>&nbsp;&nbsp;
-<input type="radio" name="iac_enabled" id="iac_enabled_no" value="no">
-<label for="No">No</label>
-</td>
-</tr>
-<tr>
-<td>
-Enable code sharing with ThreatWorx
-</td>
-<td>
-<input type="radio" name="code_sharing_enabled" id="code_sharing_enabled_yes" value="yes">
-<label for="Yes">Yes</label>&nbsp;&nbsp;
-<input type="radio" name="code_sharing_enabled" id="code_sharing_enabled_no" value="no">
-<label for="No">No</label>
-</td>
-</tr>
-<tr>
-<td>
-Enable Pull Request (PR) Workflow
-</td>
-<td>
-<input type="radio" name="pr_workflow_enabled" id="pr_workflow_enabled_yes" value="yes">
-<label for="Yes">Yes</label>&nbsp;&nbsp;
-<input type="radio" name="pr_workflow_enabled" id="pr_workflow_enabled_no" value="no">
-<label for="No">No</label>
+<input type="hidden" name="manifest" id="manifest">
+<input type="text" placeholder="GitHub Org Name" id="gh_org" required>
 </td>
 </tr>
 <tr><td>&nbsp;</td></tr>
 </table>
 </div>
-<button class="button" onclick="button_clicked()"><strong>Configure</strong></button>
+<button class="button" onclick="button_clicked()"><strong>Create</strong></button>
 </div>
 </form>
 
@@ -368,8 +317,37 @@ Enable Pull Request (PR) Workflow
         function button_clicked() {
             tokens = window.location.href.split('/')
             base_url = tokens[0] + "//" + tokens[1] + tokens[2] + "/"
+            webhook_url = base_url + "webhook"
+            redirect_url = base_url + "redirect"
             main_form = document.getElementById("main_form")
-            main_form.action = base_url + "save_github_app_config"
+            gh_org = document.getElementById("gh_org").value
+            if (gh_org.length == 0) {
+                main_form.action = "https://GH_HOST/settings/apps/new?state=TW_STATE"
+            }
+            else {
+                main_form.action = "https://GH_HOST/organizations/" + gh_org + "/settings/apps/new?state=TW_STATE"
+            }
+            input = document.getElementById("manifest")
+            input.value = JSON.stringify({
+                "name": "ThreatWorx GitHub App",
+                "url": "https://threatworx.io/",
+                "hook_attributes": {
+                    "url": webhook_url,
+                },
+                "redirect_url": redirect_url,
+                "callback_urls": [
+                ],
+                "public": true,
+                "default_permissions": {
+		    "contents": "read",
+		    "metadata": "read",
+                    "pull_requests": "write"
+                },
+                "default_events": [
+                    "pull_request",
+                    "push"
+                ]
+            })
             main_form.submit()
         }
         </script>
