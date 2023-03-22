@@ -13,15 +13,15 @@ utils.set_requests_verify(os.path.dirname(os.path.realpath(__file__)) + os.sep +
 
 @app.route('/')
 def index_page():
-    rurl = request.host_url+'configure_github_app'
+    rurl = request.host_url+'configure'
     return redirect(rurl, code=302)
 
-@app.route("/configure_github_app")
+@app.route("/configure")
 def handle_configure_github_app():
-    print("Configure github app")
+    print("Configure app service")
     config = utils.get_config()
     if config['github_app'].getboolean('setup_done'):
-        print("Warning GitHub App is already setup")
+        print("Warning app aervice is already setup")
         file_path = os.path.dirname(os.path.realpath(__file__)) + "/../templates/setup_done.html"
         with open(file_path, "r") as fd:
             fc = fd.read()
@@ -32,12 +32,12 @@ def handle_configure_github_app():
         fc = fd.read()
     return fc, 200, {'Content-Type': 'text/html'}
 
-@app.route("/save_github_app_config", methods=['POST'])
+@app.route("/save_config", methods=['POST'])
 def handle_save_github_app_config():
-    print("Save github app configuration")
+    print("Save app service configuration")
     config = utils.get_config()
     if config['github_app'].getboolean('setup_done'):
-        print("Warning GitHub App is already setup")
+        print("Warning app service is already setup")
         file_path = os.path.dirname(os.path.realpath(__file__)) + "/../templates/setup_done.html"
         with open(file_path, "r") as fd:
             fc = fd.read()
@@ -50,9 +50,15 @@ def handle_save_github_app_config():
     iac_enabled = request.values.get('iac_enabled')
     code_sharing_enabled = request.values.get('code_sharing_enabled')
     pr_workflow_enabled = request.values.get('pr_workflow_enabled')
+    tw_gh_host = request.values.get('tw_gh_host')
+    tw_gh_api_url = request.values.get('tw_gh_api_url')
+    tw_user_tags = request.values.get('tw_user_tags')
     config['threatworx']['handle'] = tw_handle
     config['threatworx']['token'] = tw_api_key
     config['threatworx']['instance'] = tw_instance
+    config['github_app']['github_host'] = tw_gh_host
+    config['github_app']['github_api_url'] = tw_gh_api_url
+    config['github_app']['user_tags'] = tw_user_tags
     config['github_app']['iac_checks_enabled'] = 'true' if iac_enabled == 'yes' else 'false'
     config['github_app']['code_sharing'] = 'true' if code_sharing_enabled == 'yes' else 'false'
     config['github_app']['pr_workflow_enabled'] = 'true' if pr_workflow_enabled == 'yes' else 'false'
@@ -60,12 +66,12 @@ def handle_save_github_app_config():
     config = utils.get_config(True)
 
     # redirect to next step
-    rurl = request.host_url + '/../create_github_app'
+    rurl = request.host_url + '/../deploy'
     return redirect(rurl, code=302)
 
-@app.route("/create_github_app")
+@app.route("/deploy")
 def handle_create_github_app():
-    print("Creating github app")
+    print("Deploying github app")
     config = utils.get_config()
     if config['github_app'].getboolean('setup_done'):
         print("Warning GitHub App is already setup")
@@ -84,7 +90,7 @@ def handle_create_github_app():
 @app.route("/redirect")
 def redirect_handler():
     try:
-        print("Handling github redirect")
+        print("Handling GitHub redirect")
         #print(request.values)
         config = utils.get_config()
         if config['github_app'].getboolean('setup_done'):

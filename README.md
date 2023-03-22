@@ -57,7 +57,7 @@ vi config.ini
 
 - Modify any other features of the app service as required in the ``config.ini``
 
-- Start the app service by running the docker compose command
+- Start the app service by running the ``docker compose`` or the ``docker-compose`` command
 
 ```bash
 cd ..
