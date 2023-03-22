@@ -38,15 +38,11 @@ cd github_app
 ./setup.sh
 ```
 
-> If you have ssl certificates, copy them to the ``config`` directory and edit the ``uwsgi.ini`` file to use your certificates
->
-> [uwsgi]
->
-> ...
->
-> https = =0,/opt/tw_github_app/config/``my.cert``,/opt/tw_github_app/config/``my.key``,...
->
-> ...
+> If you have ssl certificates, copy them to the ``config`` directory and edit the ``uwsgi.ini`` file to use your certificates&nbsp;
+> [uwsgi]&nbsp;
+> ...&nbsp;
+> https = =0,/opt/tw_github_app/config/``my.cert``,/opt/tw_github_app/config/``my.key``,...&nbsp;
+> ...&nbsp;
 
 - Start the app service by running the ``docker compose`` or the ``docker-compose`` command
 
@@ -56,8 +52,7 @@ docker compose up -d
 
 - Point a browser to ``https://linux-system`` to configure the app service
 
-> The browser will complain about the self signed certificate if are using one
->
+> The browser will complain about the self signed certificate if are using one&nbsp;
 > Please be sure to replace it with an appropriate ssl certificate
 
 - Provide required details of your ThreatWorx subscription on the form 
@@ -76,8 +71,6 @@ docker compose up -d
 
 - Once the app is installed for an organization, select repositories as required to be scanned 
 
-> App will initially do a complete dependency vulnerability scan for all selected repositories
->
-> After that, any commits will trigger a rescan of the change that is committed
->
+> App will initially do a complete dependency vulnerability scan for all selected repositories&nbsp;
+> After that, any commits will trigger a rescan of the change that is committed&nbsp;
 > If the PR workflow is enabled, each PR will be scanned and new vulnerabilities or code issues will be posted to the PR comments
