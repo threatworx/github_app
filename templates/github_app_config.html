@@ -369,7 +369,9 @@
     <label for="Service">App Settings</label>
     <br>
     <div>
-        <label><input type="checkbox" name="iac_enabled" value="yes" checked> Enable IaC checks</label>
+        <label><input type="checkbox" name="sast_enabled" value="yes" > Enable SAST checks</label>
+        <label><input type="checkbox" name="iac_enabled" value="yes" > Enable IaC checks</label>
+        <label><input type="checkbox" name="secrets_enabled" value="yes" > Enable code secrets checks</label>
         <label><input type="checkbox" name="code_sharing_enabled" value="yes" checked> Share code snippets with ThreatWorx Console as part of findings </label>
         <label><input type="checkbox" name="pr_workflow_enabled" value="yes"> Enable pull request (PR) workflow</label>
         <input type="text" placeholder="User defined asset tags" name="tw_user_tags" id="tw_user_tags" value="">

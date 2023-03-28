@@ -47,7 +47,9 @@ def handle_save_github_app_config():
     tw_handle = request.values.get('tw_handle')
     tw_api_key = request.values.get('tw_api_key')
     tw_instance = request.values.get('tw_instance')
+    sast_enabled = request.values.get('sast_enabled')
     iac_enabled = request.values.get('iac_enabled')
+    secrets_enabled = request.values.get('secrets_enabled')
     code_sharing_enabled = request.values.get('code_sharing_enabled')
     pr_workflow_enabled = request.values.get('pr_workflow_enabled')
     tw_gh_host = request.values.get('tw_gh_host')
@@ -59,7 +61,9 @@ def handle_save_github_app_config():
     config['github_app']['github_host'] = tw_gh_host
     config['github_app']['github_api_url'] = tw_gh_api_url
     config['github_app']['user_tags'] = tw_user_tags
+    config['github_app']['sast_checks_enabled'] = 'true' if sast_enabled == 'yes' else 'false'
     config['github_app']['iac_checks_enabled'] = 'true' if iac_enabled == 'yes' else 'false'
+    config['github_app']['secrets_checks_enabled'] = 'true' if secrets_enabled == 'yes' else 'false'
     config['github_app']['code_sharing'] = 'true' if code_sharing_enabled == 'yes' else 'false'
     config['github_app']['pr_workflow_enabled'] = 'true' if pr_workflow_enabled == 'yes' else 'false'
     utils.write_config(config)

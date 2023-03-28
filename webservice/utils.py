@@ -167,7 +167,9 @@ def discover_repo(gh_app_access_token, repo_url, branch, asset_id, base_discover
     handle = config['threatworx']['handle']
     token = config['threatworx']['token']
     instance = config['threatworx']['instance']
+    sast_checks_enabled = config['github_app'].getboolean('sast_checks_enabled')
     iac_checks_enabled = config['github_app'].getboolean('iac_checks_enabled')
+    secrets_checks_enabled = config['github_app'].getboolean('secrets_checks_enabled')
     code_sharing = config['github_app'].getboolean('code_sharing')
     ssl_verification = config['threatworx'].getboolean('ssl_verification', fallback=True)
     insecure = "" if ssl_verification else "--insecure"
@@ -210,27 +212,67 @@ def discover_repo(gh_app_access_token, repo_url, branch, asset_id, base_discover
     if iac_checks_enabled and run_iac_checks:
         if no_scan:
             twigs_cmd = "twigs -v --handle '%s' --create_empty_asset --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --iac_checks" % (handle, outfile, updated_repo_url, asset_id, asset_id)
-            print("Running IaC checks for repo [%s] and branch [%s]" % (repo_url, branch))
         else:
             twigs_cmd = "twigs -v %s --handle '%s' --token '%s' --instance '%s' %s --create_empty_asset --no_scan --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --iac_checks" % (insecure, handle, token, instance, ptags, updated_repo_url, asset_id, asset_id)
-            print("Running IaC checks for repo [%s] and branch [%s]" % (repo_url, branch))
         if branch is not None:
             twigs_cmd = twigs_cmd + " --branch '%s'" % branch
         if code_sharing == False:
             twigs_cmd = twigs_cmd + " --no_code"
+        print("Running IaC checks for repo [%s] and branch [%s]" % (repo_url, branch))
         try:
             #print(twigs_cmd)
             #out = subprocess.check_output([twigs_cmd], shell=True)
             out = subprocess.check_output([twigs_cmd], stderr=dev_null_device, shell=True)
             print("IaC checks completed")
             #print(out)
-            return True
         except subprocess.CalledProcessError as e:
             print("Error running twigs IaC checks")
             print(e)
             return False
-    else:
-        return True
+        
+    # Perform secrets checks if enabled
+    if secrets_checks_enabled:
+        if no_scan:
+            twigs_cmd = "twigs -v --handle '%s' --create_empty_asset --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --secrets_scan" % (handle, outfile, updated_repo_url, asset_id, asset_id)
+        else:
+            twigs_cmd = "twigs -v %s --handle '%s' --token '%s' --instance '%s' %s --create_empty_asset --no_scan --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --secrets_scan" % (insecure, handle, token, instance, ptags, updated_repo_url, asset_id, asset_id)
+        if branch is not None:
+            twigs_cmd = twigs_cmd + " --branch '%s'" % branch
+        if code_sharing == False:
+            twigs_cmd = twigs_cmd + " --no_code"
+        print("Running secrets checks for repo [%s] and branch [%s]" % (repo_url, branch))
+        try:
+            #print(twigs_cmd)
+            #out = subprocess.check_output([twigs_cmd], shell=True)
+            out = subprocess.check_output([twigs_cmd], stderr=dev_null_device, shell=True)
+            print("Secrets checks completed")
+            #print(out)
+        except subprocess.CalledProcessError as e:
+            print("Error running twigs secrets checks")
+            print(e)
+            return False
+
+    # Perform sast checks if enabled
+    if sast_checks_enabled:
+        if no_scan:
+            twigs_cmd = "twigs -v --handle '%s' --create_empty_asset --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --sast" % (handle, outfile, updated_repo_url, asset_id, asset_id)
+        else:
+            twigs_cmd = "twigs -v %s --handle '%s' --token '%s' --instance '%s' %s --create_empty_asset --no_scan --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --sast" % (insecure, handle, token, instance, ptags, updated_repo_url, asset_id, asset_id)
+        if branch is not None:
+            twigs_cmd = twigs_cmd + " --branch '%s'" % branch
+        if code_sharing == False:
+            twigs_cmd = twigs_cmd + " --no_code"
+        print("Running SAST checks for repo [%s] and branch [%s]" % (repo_url, branch))
+        try:
+            out = subprocess.check_output([twigs_cmd], stderr=dev_null_device, shell=True)
+            print("SAST completed")
+            #print(out)
+        except subprocess.CalledProcessError as e:
+            print("Error running twigs SAST checks")
+            print(e)
+            return False
+
+    return True
 
 def set_requests_verify(verify):
     global GoDaddyCABundle
