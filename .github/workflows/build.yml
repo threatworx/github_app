@@ -1,0 +1,20 @@
+# Build latest GitHub App Server 
+
+name: github_app build
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo content
+        uses: actions/checkout@v2 # checkout the repository content to github runner
+
+
+      - name: build and publish twigs
+        run: |
+            cd ${GITHUB_WORKSPACE}
+            docker build . -t threatworx/github_app_server:latest
