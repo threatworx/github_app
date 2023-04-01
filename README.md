@@ -1,5 +1,7 @@
 # ThreatWorx GitHub App
 
+![Container image build](https://github.com/threatworx/github_app/actions/workflows/build.yml/badge.svg)
+
 ## _Zero Trust Automated AppSec for Github Enterprise_
 
 A complete automated AppSec solution part of the ThreatWorx proactive security platform which discovers your Enterprise GitHub repositories and finds vulnerable dependencies, run static tests on code and Infrastructure-As-Code files, finds embedded secrets and more.
