@@ -19,8 +19,14 @@ user_tags =
 # Enable / disable discovery of repositories as assets in ThreatWorx console
 base_discovery_enabled = true
 
+# Enable / disable sast checks on repositories
+sast_checks_enabled = false
+
 # Enable / disable IaC checks on repositories
 iac_checks_enabled = false
+
+# Enable / disable secrets checks on repositories
+secrets_checks_enabled = false
 
 # Allow sharing of code snippets related to code / IaC checks to the ThreatWorx console
 code_sharing = false

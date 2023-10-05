@@ -1,5 +1,7 @@
 # ThreatWorx GitHub App
 
+![Container image build](https://github.com/threatworx/github_app/actions/workflows/build.yml/badge.svg)
+
 ## _Zero Trust Automated AppSec for Github Enterprise_
 
 A complete automated AppSec solution part of the ThreatWorx proactive security platform which discovers your Enterprise GitHub repositories and finds vulnerable dependencies, run static tests on code and Infrastructure-As-Code files, finds embedded secrets and more.
@@ -21,7 +23,9 @@ It also has workflows to instantly check pull requests for vulnerabilities and c
 - SSL certificate for secure communication with GitHub (optional). App supports and will allow creating self signed certificates if none are available.
 - Github App requires 'read' permissions for repo content and metadata and optional write permissions for PRs (in case you enable the PR workflow)
 
-## Install the App Service
+## Quick start - Install and configure the App Service
+
+- Ensure requirements are satisfied on linux system, especially docker support and https inbound / outbound connectivity
 
 - Download / clone the [ThreatWorx GitHub App](https://github.com/threatworx/github_app) repository
 
@@ -29,45 +33,52 @@ It also has workflows to instantly check pull requests for vulnerabilities and c
 git clone https://github.com/threatworx/github_app.git
 ```
 
-- Run the setup.sh script to create self signed certificates if you don't have them
+- Run the setup.sh script to create self signed certificates
 
 ```bash
 cd github_app
 ./setup.sh
 ```
 
-> If you have ssl certificates, copy them to the ``config`` directory and edit the ``uwsgi.ini`` file to use your certificates
-> [uwsgi]
-> ...
-> https = =0,/opt/tw_github_app/config/``my.cert``,/opt/tw_github_app/config/``my.key``,...
-> ...
+> If you have ssl certificates, copy them to the ``config`` directory and edit the ``uwsgi.ini`` to use your certificates
 
-- Edit the ``config.ini`` file in ``config`` directory to update your ThreatWorx ``instance``, ``handle`` (user email) and ``token`` (API key)
-
-> Look for the [threatworx] section in config.ini
-
-```bash
-cd config
-vi config.ini
+```
+[uwsgi]
+...
+https = =0,/opt/tw_github_app/config/my.cert,/opt/tw_github_app/config/my.key,...
+...
 ```
 
-> ``instance`` is your dedicated ThreatWorx instance hostname e.g. acme.threatworx.io
-> ``handle`` is your registered user email on the ThreatWorx instance e.g. bob@acme.com
-> ``token`` is your API key that you can generate or copy from the ThreatWorx instance console by navigating to ``Profile`` -> ``Key Management`` in the left menu
-
-- Modify any other features of the app service as required in the ``config.ini``
-
-- Start the app service by running the docker compose command
+- Start the app service by running the ``docker compose`` or the ``docker-compose`` command
 
 ```bash
-cd ..
-docker-compose up -d
+docker compose up -d
 ```
 
-## Configure and install the App in GitHub
+- Point a browser to ``https://linux-system`` to configure the app service
 
-- Open up a browser and sign in to your Enterprise Github account
-- Point your browser to https://linux-docker-host/
-- Enter the name of your organization where you would like to deploy the App in GitHub and click ``Create``
-- Once the request is complete, deploy the App in the GitHub console for any organization of your choice just like any other app and add repositories to it
+> The browser will complain about the self signed certificate if are using one
+>
+> Please be sure to replace it with an appropriate ssl certificate
 
+- Provide required details of your ThreatWorx subscription on the form 
+
+- Select required options for app service and click ``Configure``
+
+> These options can be changed later by editing the ``./config/config.ini`` file
+
+- On the next page provide the name of your GitHub organization where this app will be deployed and click ``Deploy``
+
+> If you are signed on to your enterprise GitHub account, the app will be available for installation in your Github Organization
+
+- Follow instructions [here](https://docs.github.com/en/apps/maintaining-github-apps/installing-github-apps) to install the app for appropriate Github organizations
+
+> If you are using self-signed certificates, make sure the SSL verification is disabled for Webhooks 
+
+- Once the app is installed for an organization, select repositories as required to be scanned 
+
+> App will initially do a complete dependency vulnerability scan for all selected repositories
+>
+> After that, any commits will trigger a rescan of the change that is committed
+>
+> If the PR workflow is enabled, each PR will be scanned and new vulnerabilities or code issues will be posted to the PR comments
