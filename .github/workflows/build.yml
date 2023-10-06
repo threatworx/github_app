@@ -1,10 +1,12 @@
-# Build latest GitHub App Server 
+# Build latest container image
 
-name: github_app build
+name: github app docker image build
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
+  push:
+    branches: [ "master" ]
+    paths:
+      - 'version'
 
 jobs:
   build:
@@ -12,9 +14,21 @@ jobs:
     steps:
       - name: checkout repo content
         uses: actions/checkout@v2 # checkout the repository content to github runner
-
-
-      - name: build container image
+        
+      - name: Get version tag
         run: |
-            cd ${GITHUB_WORKSPACE}
-            docker build . -t threatworx/github_app_server:latest
+          echo "TAG_NAME=$(cat version)" >> $GITHUB_ENV
+          
+      - name: Log in to Docker Hub
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: threatworx/github_app_server:${{ env.TAG_NAME }}, threatworx/github_app_server:latest
