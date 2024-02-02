@@ -233,9 +233,9 @@ def discover_repo(gh_app_access_token, repo_url, branch, asset_id, base_discover
     # Perform secrets checks if enabled
     if secrets_checks_enabled:
         if no_scan:
-            twigs_cmd = "twigs -v --handle '%s' --create_empty_asset --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --secrets_scan" % (handle, outfile, updated_repo_url, asset_id, asset_id)
+            twigs_cmd = "twigs -v --handle '%s' --create_empty_asset --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --secrets_scan --check_common_passwords" % (handle, outfile, updated_repo_url, asset_id, asset_id)
         else:
-            twigs_cmd = "twigs -v %s --handle '%s' --token '%s' --instance '%s' %s --create_empty_asset --no_scan --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --secrets_scan" % (insecure, handle, token, instance, ptags, updated_repo_url, asset_id, asset_id)
+            twigs_cmd = "twigs -v %s --handle '%s' --token '%s' --instance '%s' %s --create_empty_asset --no_scan --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --secrets_scan --check_common_passwords" % (insecure, handle, token, instance, ptags, updated_repo_url, asset_id, asset_id)
         if branch is not None:
             twigs_cmd = twigs_cmd + " --branch '%s'" % branch
         if code_sharing == False:
