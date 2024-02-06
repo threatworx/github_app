@@ -1,4 +1,7 @@
 #!/bin/bash
+# install ssl-dev
+apt-get update
+apt-get install libssl-dev -y
 # Install github app dependencies
 pip install -r /tmp/requirements.txt
 # Setup twigs update script

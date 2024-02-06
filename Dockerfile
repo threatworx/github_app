@@ -9,6 +9,5 @@ USER root
 COPY build_docker.sh /tmp
 COPY requirements.txt /tmp
 COPY . /usr/share/github_app
-RUN apt-get install libssl-dev
 RUN /bin/bash /tmp/build_docker.sh
 ENTRYPOINT ["/usr/local/bin/run-app.sh"]
