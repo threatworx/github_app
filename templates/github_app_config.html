@@ -373,7 +373,6 @@
         <label><input type="checkbox" name="iac_enabled" value="yes" > Enable IaC checks</label>
         <label><input type="checkbox" name="secrets_enabled" value="yes" > Enable code secrets checks</label>
         <label><input type="checkbox" name="code_sharing_enabled" value="yes" checked> Share code snippets with ThreatWorx Console as part of findings </label>
-	<input type="text" placeholder="Absolute path to your custom paswords file. Optional" name="custom_password_file" id="custom_password_file"><span class="help-block">An optional absolute path to custom passwords file if specified</span>
         <label><input type="checkbox" name="pr_workflow_enabled" value="yes"> Enable pull request (PR) workflow</label>
         <input type="text" placeholder="User defined asset tags" name="tw_user_tags" id="tw_user_tags" value="">
 	<span class="help-block">Optional comma separated tags you want to assign to discovered assets for search and access control<br>Assets will be auto tagged with GitHub org name</span>
@@ -381,6 +380,8 @@
 	<span class="help-block">Optional hostname of your GitHub host if using on-premise or hosted version of Github</span>
         <input type="text" placeholder="GitHub API URL" name="tw_gh_api_url" id="tw_gh_api_url" value="https://api.github.com">
 	<span class="help-block">Optional GitHub API URL if using on-premise or hosted version of Github</span>
+	<input type="text" placeholder="Custom secrets file" name="custom_password_file" id="custom_password_file">
+	<span class="help-block">An optional path on the app server to file containing list of custom passwords for secrets scan. Overrides default list of passwords used for secrets scan</span>
     </div>
 </div>
 <!--<button class="btn" onclick="button_clicked()"><strong>Configure</strong></button>-->
