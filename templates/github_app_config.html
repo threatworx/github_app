@@ -373,6 +373,7 @@
         <label><input type="checkbox" name="iac_enabled" value="yes" > Enable IaC checks</label>
         <label><input type="checkbox" name="secrets_enabled" value="yes" > Enable code secrets checks</label>
         <label><input type="checkbox" name="code_sharing_enabled" value="yes" checked> Share code snippets with ThreatWorx Console as part of findings </label>
+	<input type="text" placeholder="Absolute path to your custom paswords file. Optional" name="custom_password_file" id="custom_password_file"><span class="help-block">An optional absolute path to custom passwords file if specified</span>
         <label><input type="checkbox" name="pr_workflow_enabled" value="yes"> Enable pull request (PR) workflow</label>
         <input type="text" placeholder="User defined asset tags" name="tw_user_tags" id="tw_user_tags" value="">
 	<span class="help-block">Optional comma separated tags you want to assign to discovered assets for search and access control<br>Assets will be auto tagged with GitHub org name</span>

@@ -50,6 +50,7 @@ def handle_save_github_app_config():
     sast_enabled = request.values.get('sast_enabled')
     iac_enabled = request.values.get('iac_enabled')
     secrets_enabled = request.values.get('secrets_enabled')
+    custom_password_file = request.values.get('custom_password_file')
     code_sharing_enabled = request.values.get('code_sharing_enabled')
     pr_workflow_enabled = request.values.get('pr_workflow_enabled')
     tw_gh_host = request.values.get('tw_gh_host')
@@ -61,6 +62,7 @@ def handle_save_github_app_config():
     config['github_app']['github_host'] = tw_gh_host
     config['github_app']['github_api_url'] = tw_gh_api_url
     config['github_app']['user_tags'] = tw_user_tags
+    config['github_app']['custom_password_file'] = custom_password_file.strip() if custom_password_file is not None else ""
     config['github_app']['sast_checks_enabled'] = 'true' if sast_enabled == 'yes' else 'false'
     config['github_app']['iac_checks_enabled'] = 'true' if iac_enabled == 'yes' else 'false'
     config['github_app']['secrets_checks_enabled'] = 'true' if secrets_enabled == 'yes' else 'false'

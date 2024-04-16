@@ -58,6 +58,14 @@ def get_config(force_read = False):
         sys.exit(1)
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)
+
+    custom_password_file = config["github_app"].get("custom_password_file")
+    if custom_password_file is not None and len(custom_password_file) > 0:
+        custom_password_file = custom_password_file.strip()
+        if os.path.isfile(custom_password_file) == False:
+            print("Error unable to open custom password file [%s]" % custom_password_file)
+            print("Note custom_password file should be present in GitHub App Config directory")
+            sys.exit(1)
     return config
 
 def write_config(config):
@@ -232,10 +240,12 @@ def discover_repo(gh_app_access_token, repo_url, branch, asset_id, base_discover
         
     # Perform secrets checks if enabled
     if secrets_checks_enabled:
+        custom_password_file = config['github_app']['custom_password_file']
+        custom_password_file_arg = "--common_passwords_file %s" % custom_password_file if len(custom_password_file) > 0 else ""
         if no_scan:
-            twigs_cmd = "twigs -v --handle '%s' --create_empty_asset --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --secrets_scan --check_common_passwords" % (handle, outfile, updated_repo_url, asset_id, asset_id)
+            twigs_cmd = "twigs -v --handle '%s' --create_empty_asset --no_scan --out '%s' --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --secrets_scan --check_common_passwords %s" % (handle, outfile, updated_repo_url, asset_id, asset_id, custom_password_file_arg)
         else:
-            twigs_cmd = "twigs -v %s --handle '%s' --token '%s' --instance '%s' %s --create_empty_asset --no_scan --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --secrets_scan --check_common_passwords" % (insecure, handle, token, instance, ptags, updated_repo_url, asset_id, asset_id)
+            twigs_cmd = "twigs -v %s --handle '%s' --token '%s' --instance '%s' %s --create_empty_asset --no_scan --run_id github_app repo --repo '%s' --assetid '%s' --assetname '%s' --secrets_scan --check_common_passwords %s" % (insecure, handle, token, instance, ptags, updated_repo_url, asset_id, asset_id, custom_password_file_arg)
         if branch is not None:
             twigs_cmd = twigs_cmd + " --branch '%s'" % branch
         if code_sharing == False:

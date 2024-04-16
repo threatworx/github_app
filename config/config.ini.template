@@ -28,6 +28,10 @@ iac_checks_enabled = false
 # Enable / disable secrets checks on repositories
 secrets_checks_enabled = false
 
+# Specify an optional custom passwords file
+# Path should be absolute to file located in GitHub App Config directory
+custom_password_file = 
+
 # Allow sharing of code snippets related to code / IaC checks to the ThreatWorx console
 code_sharing = false
 
