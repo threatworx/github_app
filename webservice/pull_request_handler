@@ -226,6 +226,7 @@ else:
     os.remove(diff_file_name)
 
 # Run IaC checks if enabled
+'''
 iac_checks_enabled = config['github_app'].getboolean('iac_checks_enabled')
 if iac_checks_enabled:
     # get the installation access token for our GitHub App
@@ -264,4 +265,4 @@ if iac_checks_enabled:
     # get the installation access token for our GitHub App
     installation_access_token = utils.get_installation_access_token(installation_id)
     add_pr_comment(comments_url, installation_access_token, iac_summary)
-
+'''
